@@ -1,0 +1,351 @@
+SunaCare Reporting Integration Work Log
+Date: 2026-03-13
+Owner: Copilot (GPT-5.3-Codex)
+
+Summary
+- Goal: make report submission from user side persist to backend and appear correctly on admin + responder portals, including details, media, and status updates.
+- Current state: backend reporting API route/controller improvements are completed; admin reports page is partially fixed; responder/user portal fixes still pending.
+
+Completed So Far
+
+1) Backend API fixes (DONE)
+Project: test-backedend
+
+Files changed:
+- src/routes/report.routes.js
+- src/controllers/report.controller.js
+
+Changes completed:
+- Added missing delete handler wiring in routes:
+  - Added controller import: deleteReport
+  - Added route: DELETE /api/reports/:id (admin only)
+- Extended permissions for status + assign operations:
+  - PUT /api/reports/:id/status now allows responder OR admin
+  - PATCH /api/reports/:id/assign now allows responder OR admin
+- Added delete controller implementation:
+  - deleteReport in report.controller.js
+  - Performs findByPk, 404 if missing, destroy on success
+
+Why this matters:
+- Admin report moderation UI had delete action but backend route did not exist.
+- Admin needed to update report status from admin panel, but route previously allowed responder only.
+
+2) Admin reports page fixes (PARTIAL)
+Project: test-admin
+File changed:
+- src/app/reports/page.tsx
+
+Changes already applied:
+- Fixed broken import path:
+  - from '@/components/admin/utils'
+  - to   '@/lib/utils'
+- Began API contract alignment with backend response shape:
+  - Backend returns { success, reports } not { data: { reports } }
+- Began filter contract alignment:
+  - flagged filter switched to flagged=1
+  - urgency filter mapping started toward backend enum
+  - category query key updated toward backend schema
+- Added status enum normalization constants for backend style values
+
+Important note:
+- This file is mid-refactor (not fully complete yet).
+- Some UI components in admin still assume old labels/case-number field names and need final alignment.
+
+In Progress Right Now
+- Finishing the admin reports page contract mapping end-to-end:
+  - load list correctly
+  - open detail correctly
+  - update status endpoint path correction
+  - compute stat cards from real data
+  - ensure flagged tab uses backend fields
+
+Planned Next Steps (Not yet committed)
+
+Phase A: Finish admin side wiring
+Project: test-admin
+Files to complete:
+- src/app/reports/page.tsx
+- src/components/admin/reports/ReportTable.tsx
+- src/components/admin/reports/FlaggedReportTable.tsx
+- src/components/admin/reports/ReportDetail.tsx
+
+Planned fixes:
+- Use backend status values directly: pending, in-treatment, rescued, closed
+- Keep display labels human-friendly in UI only
+- Fix detail open result parsing: data.report
+- Fix status update endpoint: /reports/:id/status
+- Ensure report number field is report_number (fallback where needed)
+- Ensure media image source uses media_url + backend host prefix when relative
+- Remove assumptions about non-existent fields (case_number, flag_reason, notes endpoint) or degrade gracefully
+
+Phase B: Fix responder portal route + detail behavior
+Project: test-backenduser
+Files to fix:
+- src/components/responder/reports/ReportsContent.tsx
+- src/app/reports/[id]/page.tsx
+
+Planned fixes:
+- Correct list row link path:
+  - currently points to /responder/reports/:id
+  - should point to /reports/:id for this project route structure
+- Keep status updates and assignment persisted via API (already partially present)
+- Verify detail page data refresh for selected report and media display
+
+Phase C: Fix user portal reporting flow
+Project: test-user
+Files to fix:
+- src/components/report/ReportPage.tsx
+- src/lib/mockData.ts
+- src/components/responder/reports/ReportsContent.tsx
+- src/app/(responder)/responder/reports/[id]/page.tsx
+
+Planned fixes:
+- Ensure report submission supports image upload to backend:
+  - currently sends JSON only; file is never uploaded
+  - switch to FormData and send field name media
+- Include all expected payload fields used by backend:
+  - landmark, share_with_ngo, consent, tags, animal_count
+- Rebuild missing exports in test-user/src/lib/mockData.ts:
+  - fetchResponderReports
+  - formatTimeAgo
+  - Report/Status/Urgency/AnimalType/Note types
+- Fix responder pages that currently import missing symbols from mockData
+- Persist responder status/assign in test-user responder detail page (currently local-state-only)
+
+Phase D: End-to-end verification
+Planned test scenario:
+1) Submit report from user portal with image + location + contact details.
+2) Confirm record inserted in DB reports table.
+3) Confirm it appears in admin reports list and detail (with media).
+4) Confirm it appears in responder list and detail.
+5) Update status from responder/admin and confirm DB + both frontends reflect changes.
+6) Delete flagged report from admin and confirm removal.
+
+Known Risks / Constraints
+- The frontend projects use different auth token keys; role-based views rely on correct login context per portal.
+- Some components are using placeholder/mock-era field names and need careful mapping to backend schema.
+- test-user and test-backenduser have similar responder UIs but different route roots; link paths must be set per project.
+
+Current Working Status
+- Not stuck; active progress.
+- Backend route/controller layer for reporting is already improved and unblocked.
+- Next immediate action is to finish the admin report UI mapping, then responder/user flow completion, then end-to-end run-through.
+
+Live Update — 2026-03-13 (continued)
+
+Completed in this batch
+- Admin reports UI contract alignment completed across table/detail/page:
+  - page.tsx now reads backend response shape directly (`data.reports` fallback removed)
+  - status update now hits `/reports/:id/status`
+  - detail view now reads `data.report`
+  - flagged filter uses `flagged=1`
+  - category filter uses backend `category`
+  - stat cards now use real list counts instead of static zeroes
+- Admin report components now use backend status enums and labels:
+  - `pending`, `in-treatment`, `rescued`, `closed`
+- Removed unsupported report notes API usage in admin detail panel (`/reports/:id/notes` does not exist).
+- Added admin accessibility attributes required by linting on controls (button/select labels).
+
+- Responder portal routing fix completed (test-backenduser):
+  - report list links now open `/reports/:id` (correct route for that app)
+
+- User portal reporting flow fixes completed:
+  - report submission switched to `FormData` so image uploads reach backend (`media` field)
+  - payload now includes backend-required report fields:
+    - `animal_count`, `landmark`, `share_with_ngo`, `consent`, `tags`
+  - category normalization added (`wildlife` maps to `other`)
+  - responder report detail now persists status and assignment updates via API
+
+- User portal mock/report data layer repaired:
+  - rebuilt `src/lib/mockData.ts` with missing exports used by responder pages
+  - added `responderReportsApi` in `src/lib/api.ts` with response unwrapping for backend shape
+
+Database table check (requested)
+- Checked `database/schema.sql` against `src/models/Report.model.js`.
+- Result: no schema/table changes required for current reporting flow; report columns used by API are already present.
+- Therefore no `ALTER TABLE reports` changes were applied in this batch.
+
+Remaining work
+- Run end-to-end verification and fix any runtime mismatches found during live flow testing.
+
+Verification Update — API smoke test
+- Ran backend API smoke flow successfully:
+  1) Submitted a new guest report (`/api/reports/guest`)
+  2) Logged in as admin + responder using seed credentials
+  3) Confirmed new report appears in admin report list
+  4) Confirmed new report appears in responder report list
+  5) Assigned report as responder (`PATCH /api/reports/:id/assign`)
+  6) Updated status as responder (`PUT /api/reports/:id/status` to `in-treatment`)
+  7) Re-fetched report as admin and verified updated status + assignment persisted
+
+Smoke test output summary:
+- reportId: 10
+- reportNumber: RPT-00010
+- adminSees: true
+- responderSees: true
+- finalStatus: in-treatment
+- assignedTo: 2
+
+Database table update request status
+- Rechecked schema/model compatibility after smoke test.
+- No additional table changes are required right now for the reporting flow.
+
+Runtime server verification
+- Backend health endpoint responds: HTTP 200 (`/health`)
+- User frontend responds on port 3000: HTTP 200
+- Admin frontend responds on port 3001: HTTP 200
+- Responder frontend responds on port 3002: HTTP 200
+
+Implementation status
+- All planned code fixes in backend/admin/responder/user portals are now implemented.
+- API-level end-to-end verification is complete and passed.
+
+Post-verification runtime fix
+- Issue: responder report detail page crashed with `report.location.lat.toFixed is not a function` when coordinates arrived as strings.
+- Fix applied in both responder apps:
+  - `test-backenduser/src/app/reports/[id]/page.tsx`
+  - `test-user/src/app/(responder)/responder/reports/[id]/page.tsx`
+  - Added safe numeric coercion before rendering map coordinates.
+- Data-mapping hardening added:
+  - `test-backenduser/src/lib/mockData.ts`
+  - `test-user/src/lib/mockData.ts`
+  - Coordinates now normalized with `Number(...)` during API → UI mapping.
+
+Community feed runtime fix
+- Issue: community feed card crashed with Cannot read properties of undefined (reading 'bg') when a post type had no style entry.
+- Fix applied in both responder feed card components:
+  - test-backenduser/src/components/responder/community/FeedPostCard.tsx
+  - test-user/src/components/responder/community/FeedPostCard.tsx
+  - Added DEFAULT_POST_TYPE_STYLE fallback and now resolve type style with POST_TYPE_STYLES[post.type] || DEFAULT_POST_TYPE_STYLE.
+- Additional hardening in user responder UI:
+  - test-user/src/components/responder/community/PostTypeIcon.tsx
+  - Added legacy aliases and a safe icon fallback (?? MessageSquare) for unknown types.
+- Result: unknown/legacy post types no longer crash feed card rendering.
+
+Community studio runtime fix
+- Issue: StudioView crashed with Cannot read properties of undefined (reading 'color') in reported posts rendering when post type had no style map entry.
+- Fix applied in both StudioView components:
+  - test-backenduser/src/components/responder/community/StudioView.tsx
+  - test-user/src/components/responder/community/StudioView.tsx
+  - Added DEFAULT_POST_TYPE_STYLE and getPostTypeStyle(type) helper.
+  - Replaced direct POST_TYPE_STYLES[...] lookups used in moderation/scheduled/analytics rendering with safe helper lookups.
+- Result: unknown/legacy post types now render with neutral fallback colors instead of crashing the community studio page.
+
+Admin community visibility fix
+- Issue: Admin Community page showed no posts because it parsed an outdated response shape (data.data.posts) and expected legacy field names (	ype, content, 
+eported) while backend returns flat data array with fields like post_type, ody, is_flagged.
+- Fixes in test-admin:
+  - src/app/community/page.tsx
+    - Added robust response unwrapping for /posts.
+    - Added post normalization mapping (post_type -> type, ody -> content, is_flagged -> reported, is_pinned -> pinned, etc.).
+    - Switched flagged query to backend-supported lagged=1.
+    - Moved type/search/reported filtering + pagination to client side using normalized data.
+    - Updated type filter options to include current backend community post types.
+  - src/components/admin/community/PostCard.tsx
+    - Added color mapping for normalized/new post types.
+    - Render type label safely and normalized image URL handling.
+  - src/components/admin/community/PostDetail.tsx
+    - Replaced unsupported comments fetch path with /posts/:id detail hydration + fallback to already loaded comments.
+    - Added normalized/new post type colors and robust image URL handling.
+- Result: Admin Community now renders created posts (including flagged/new report style types) instead of showing empty state.
+
+Admin comment moderation visibility fix
+- Issue: Newly added/updated comments on posts were not reliably visible in admin post moderation/detail due stale GET reads and one-time comment load.
+- Fixes in test-admin:
+  - src/lib/utils.ts
+    - Updated piFetch to use cache: 'no-store' by default for GET requests to prevent stale API responses.
+  - src/components/admin/community/PostDetail.tsx
+    - Added periodic comment refresh every 10 seconds while post detail panel is open.
+    - Kept immediate refresh when post selection changes.
+    - Comments stat card now reflects live comments list length first.
+
+Community likes/comments DB persistence update
+- User requirement: likes and comments in community must persist to database and remain after refresh.
+- Implemented persistence wiring in user and responder community flows:
+
+1) test-user community page (user feed)
+- File: src/components/community/CommunityPage.tsx
+- Changes:
+  - Like action now calls POST /posts/:id/like and updates UI from server-backed toggle result.
+  - Add comment action now calls POST /posts/:id/comments with optimistic UI update and rollback on failure.
+  - Post fetch flow normalized to preserve backend comment/like data.
+
+2) responder API helpers
+- test-backenduser/src/lib/api.ts
+  - Added responderPostsApi.like(id) -> POST /posts/:id/like
+- test-user/src/lib/api.ts
+  - Added responderPostsApi export with list/get/create/update/delete/like helpers.
+  - Ensures responder community page can use backend-backed post actions without local-only fallbacks.
+
+3) responder feed components (both apps)
+- test-backenduser/src/components/responder/community/FeedPostCard.tsx
+- test-user/src/components/responder/community/FeedPostCard.tsx
+- test-backenduser/src/components/responder/community/FeedView.tsx
+- test-user/src/components/responder/community/FeedView.tsx
+- Changes:
+  - Introduced parent-driven onLike callback.
+  - Like count now renders from post.likes (server-backed state) rather than local-only counter.
+
+4) responder community pages
+- test-backenduser/src/app/community/page.tsx
+- test-user/src/app/(responder)/responder/community/page.tsx
+- Changes:
+  - Added/updated backend-backed handleLike logic.
+  - Improved mapping for backend comments so refreshed posts retain comment data.
+  - Passed onLike through to feed list/cards.
+
+Validation status for latest batch
+- Editor diagnostics check run on all touched community files.
+- Result: no compile/type errors in changed persistence files.
+- Remaining warnings are pre-existing style/accessibility lint findings in legacy feed card markup and are unrelated to DB persistence behavior.
+
+Outcome
+- Community likes/comments are now wired to backend endpoints in user + responder flows.
+- After refresh, engagement data is sourced from API/DB instead of transient local state.
+
+Community comments enhancement (images + reporting moderation)
+- Requirement addressed: allow image uploads in post comments, persist to DB, allow users to report comments, and make admin moderation manageable.
+
+Backend/API changes (test-backedend)
+- Database schema updates:
+  - post_comments extended with:
+    - image_url (VARCHAR 500)
+    - is_flagged (TINYINT)
+    - flag_count (INT)
+    - hidden (TINYINT)
+    - body now nullable to support image-only comments.
+  - new table post_comment_reports:
+    - comment_id, reporter_id, reason, details, created_at
+    - unique(comment_id, reporter_id) to prevent duplicate reports by same user.
+- Added model: src/models/PostCommentReport.model.js
+- Updated associations in src/models/index.js for comment reports.
+- Post routes now support comment moderation/reporting endpoints:
+  - POST /api/posts/comments/:commentId/report
+  - PUT /api/posts/comments/:commentId/unflag
+  - PUT /api/posts/comments/:commentId/hide
+  - DELETE /api/posts/comments/:commentId
+  - GET /api/posts/comments/flagged
+- Post comment create endpoint now supports multipart image upload:
+  - POST /api/posts/:id/comments accepts image field via multer upload to /uploads/comments.
+- Post controller now normalizes comment moderation fields (reported/hidden/report_count) in list/detail payloads.
+
+Frontend changes
+- test-user community page:
+  - Comment submission now uses FormData and sends optional image + text to backend.
+  - Comment image preview retained locally and replaced with persisted backend URL after save.
+  - Added comment reporting action calling POST /posts/comments/:commentId/report.
+  - Hidden comments are excluded from user comment list rendering.
+- test-admin post detail moderation:
+  - Comment delete now uses backend route /posts/comments/:id.
+  - Added comment hide/unhide action, clear report flags action, and flagged-only filter toggle.
+  - Added comment image rendering and report metadata (count + latest reason).
+- responder moderation wiring (both responder apps):
+  - comment approve/hide/delete actions now call backend moderation APIs instead of local-only state updates.
+
+DB scripts
+- Updated files:
+  - database/schema.sql
+  - database/seed.sql
+- Added migration helper script:
+  - database/comment-image-report-migration.sql
+- Result: Admin side now shows recent post comment updates without requiring hard refresh/reopen cycles.
