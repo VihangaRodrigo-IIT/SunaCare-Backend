@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { Op } from 'sequelize';
 import { NgoApplication, NgoVerification, User } from '../models/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sequelize } from '../config/database.js';
@@ -233,8 +234,9 @@ export const listMapNgos = asyncHandler(async (req, res) => {
 
   const attributes = [
     'id', 'org_name', 'org_type', 'org_address', 'org_description',
-    'phone', 'email', 'website', 'coverage_radius_km', 'approval_status', 'createdAt',
+    'phone', 'email', 'coverage_radius_km', 'approval_status', 'createdAt',
   ];
+  if (cols.has('website')) attributes.push('website');
   if (cols.has('map_pinned')) attributes.push('map_pinned');
   if (cols.has('show_on_user_map')) attributes.push('show_on_user_map');
   if (cols.has('latitude')) attributes.push('latitude');
@@ -260,8 +262,9 @@ export const listAdminNgos = asyncHandler(async (req, res) => {
   const cols = await getNgoColumns();
   const attributes = [
     'id', 'org_name', 'org_type', 'org_address', 'org_description',
-    'phone', 'email', 'website', 'coverage_radius_km', 'approval_status', 'createdAt',
+    'phone', 'email', 'coverage_radius_km', 'approval_status', 'createdAt',
   ];
+  if (cols.has('website')) attributes.push('website');
   if (cols.has('map_pinned')) attributes.push('map_pinned');
   if (cols.has('show_on_user_map')) attributes.push('show_on_user_map');
   if (cols.has('latitude')) attributes.push('latitude');
@@ -283,7 +286,7 @@ export const listAdminNgos = asyncHandler(async (req, res) => {
 // POST /api/ngos (admin create pin)
 export const createMapNgo = asyncHandler(async (req, res) => {
   const cols = await getNgoColumns();
-  if (!cols.has('latitude') || !cols.has('longitude') || !cols.has('map_pinned')) {
+  if (!cols.has('latitude') || !cols.has('longitude')) {
     return res.status(400).json({
       success: false,
       message: 'Database migration required for map pins. Apply migrations/006_add_map_visibility_fields.sql and restart backend.',
@@ -292,7 +295,7 @@ export const createMapNgo = asyncHandler(async (req, res) => {
 
   const now = Date.now();
   const fallbackEmail = `map-pin-${now}-${Math.floor(Math.random() * 10000)}@sunacare.local`;
-  const record = await NgoApplication.create({
+  const payload = {
     contact_name: req.body.contact_name || req.body.org_name || 'Map Pin',
     email: (req.body.email || fallbackEmail).toLowerCase(),
     phone: req.body.phone || null,
@@ -300,17 +303,19 @@ export const createMapNgo = asyncHandler(async (req, res) => {
     org_type: normalizeOrgTypeForDb(req.body.org_type),
     org_address: req.body.org_address || null,
     org_description: req.body.org_description || req.body.bio || null,
-    website: req.body.website || null,
     coverage_radius_km: req.body.coverage_radius_km || null,
     approval_status: 'approved',
     reviewed_by: req.user.id,
     reviewed_at: new Date(),
-    map_pinned: req.body.map_pinned !== false,
-    show_on_user_map: req.body.show_on_user_map !== false,
     latitude: req.body.latitude ?? null,
     longitude: req.body.longitude ?? null,
     pinned_by: req.user.id,
-  });
+  };
+  if (cols.has('map_pinned')) payload.map_pinned = req.body.map_pinned !== false;
+  if (cols.has('show_on_user_map')) payload.show_on_user_map = req.body.show_on_user_map !== false;
+  if (cols.has('website')) payload.website = req.body.website || null;
+
+  const record = await NgoApplication.create(payload);
 
   res.status(201).json({
     success: true,
@@ -321,7 +326,7 @@ export const createMapNgo = asyncHandler(async (req, res) => {
 // PATCH /api/ngos/:id (admin update pin)
 export const updateMapNgo = asyncHandler(async (req, res) => {
   const cols = await getNgoColumns();
-  if (!cols.has('latitude') || !cols.has('longitude') || !cols.has('map_pinned')) {
+  if (!cols.has('latitude') || !cols.has('longitude')) {
     return res.status(400).json({
       success: false,
       message: 'Database migration required for map pins. Apply migrations/006_add_map_visibility_fields.sql and restart backend.',
@@ -338,15 +343,15 @@ export const updateMapNgo = asyncHandler(async (req, res) => {
     org_type: req.body.org_type !== undefined ? normalizeOrgTypeForDb(req.body.org_type) : undefined,
     org_address: req.body.org_address,
     org_description: req.body.org_description ?? req.body.bio,
-    website: req.body.website,
     phone: req.body.phone,
     email: req.body.email,
     coverage_radius_km: req.body.coverage_radius_km,
-    map_pinned: req.body.map_pinned,
-    show_on_user_map: req.body.show_on_user_map,
     latitude: req.body.latitude,
     longitude: req.body.longitude,
   };
+  if (cols.has('map_pinned')) updates.map_pinned = req.body.map_pinned;
+  if (cols.has('show_on_user_map')) updates.show_on_user_map = req.body.show_on_user_map;
+  if (cols.has('website')) updates.website = req.body.website;
 
   Object.keys(updates).forEach((key) => {
     if (updates[key] === undefined) {
@@ -393,7 +398,7 @@ export const upsertMyMapNgo = asyncHandler(async (req, res) => {
   }
 
   const cols = await getNgoColumns();
-  if (!cols.has('latitude') || !cols.has('longitude') || !cols.has('map_pinned')) {
+  if (!cols.has('latitude') || !cols.has('longitude')) {
     return res.status(400).json({
       success: false,
       message: 'Database migration required for map pins. Apply migrations/006_add_map_visibility_fields.sql and restart backend.',
@@ -411,16 +416,16 @@ export const upsertMyMapNgo = asyncHandler(async (req, res) => {
     org_type: req.body.org_type !== undefined ? normalizeOrgTypeForDb(req.body.org_type) : undefined,
     org_address: req.body.org_address,
     org_description: req.body.org_description ?? req.body.bio,
-    website: req.body.website,
     phone: req.body.phone,
     email: req.body.email,
     coverage_radius_km: req.body.coverage_radius_km,
-    map_pinned: req.body.map_pinned === false ? false : true,
-    show_on_user_map: req.body.show_on_user_map !== undefined ? !!req.body.show_on_user_map : true,
     latitude: req.body.latitude,
     longitude: req.body.longitude,
     pinned_by: req.user.id,
   };
+  if (cols.has('map_pinned')) updates.map_pinned = req.body.map_pinned === false ? false : true;
+  if (cols.has('show_on_user_map')) updates.show_on_user_map = req.body.show_on_user_map !== undefined ? !!req.body.show_on_user_map : true;
+  if (cols.has('website')) updates.website = req.body.website;
 
   Object.keys(updates).forEach((key) => {
     if (updates[key] === undefined) {
