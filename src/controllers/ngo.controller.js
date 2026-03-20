@@ -52,6 +52,7 @@ function mapNgoForMapResponse(app) {
     org_type_key: data.org_type,
     org_address: data.org_address,
     org_description: data.org_description,
+    website: data.website,
     phone: data.phone,
     email: data.email,
     coverage_radius_km: data.coverage_radius_km,
@@ -227,12 +228,12 @@ export const listMapNgos = asyncHandler(async (req, res) => {
   const includeAll = req.query.includeAll === '1' && req.user?.role === 'admin';
   const limit = Number.parseInt(req.query.limit || '100', 10);
   const where = includeAll ? {} : { approval_status: 'approved' };
-  if (!includeAll && cols.has('map_pinned')) where.map_pinned = true;
-  if (!includeAll && cols.has('show_on_user_map')) where.show_on_user_map = true;
+  if (!includeAll && cols.has('latitude')) where.latitude = { [Op.ne]: null };
+  if (!includeAll && cols.has('longitude')) where.longitude = { [Op.ne]: null };
 
   const attributes = [
     'id', 'org_name', 'org_type', 'org_address', 'org_description',
-    'phone', 'email', 'coverage_radius_km', 'approval_status', 'createdAt',
+    'phone', 'email', 'website', 'coverage_radius_km', 'approval_status', 'createdAt',
   ];
   if (cols.has('map_pinned')) attributes.push('map_pinned');
   if (cols.has('show_on_user_map')) attributes.push('show_on_user_map');
@@ -259,7 +260,7 @@ export const listAdminNgos = asyncHandler(async (req, res) => {
   const cols = await getNgoColumns();
   const attributes = [
     'id', 'org_name', 'org_type', 'org_address', 'org_description',
-    'phone', 'email', 'coverage_radius_km', 'approval_status', 'createdAt',
+    'phone', 'email', 'website', 'coverage_radius_km', 'approval_status', 'createdAt',
   ];
   if (cols.has('map_pinned')) attributes.push('map_pinned');
   if (cols.has('show_on_user_map')) attributes.push('show_on_user_map');
@@ -299,6 +300,7 @@ export const createMapNgo = asyncHandler(async (req, res) => {
     org_type: normalizeOrgTypeForDb(req.body.org_type),
     org_address: req.body.org_address || null,
     org_description: req.body.org_description || req.body.bio || null,
+    website: req.body.website || null,
     coverage_radius_km: req.body.coverage_radius_km || null,
     approval_status: 'approved',
     reviewed_by: req.user.id,
@@ -336,6 +338,7 @@ export const updateMapNgo = asyncHandler(async (req, res) => {
     org_type: req.body.org_type !== undefined ? normalizeOrgTypeForDb(req.body.org_type) : undefined,
     org_address: req.body.org_address,
     org_description: req.body.org_description ?? req.body.bio,
+    website: req.body.website,
     phone: req.body.phone,
     email: req.body.email,
     coverage_radius_km: req.body.coverage_radius_km,
@@ -408,6 +411,7 @@ export const upsertMyMapNgo = asyncHandler(async (req, res) => {
     org_type: req.body.org_type !== undefined ? normalizeOrgTypeForDb(req.body.org_type) : undefined,
     org_address: req.body.org_address,
     org_description: req.body.org_description ?? req.body.bio,
+    website: req.body.website,
     phone: req.body.phone,
     email: req.body.email,
     coverage_radius_km: req.body.coverage_radius_km,
