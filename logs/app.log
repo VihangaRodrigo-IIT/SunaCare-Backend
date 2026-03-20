@@ -150,3 +150,5 @@
 [2026-03-20T19:49:04.591Z] [INFO] Server running on port 5000
 [2026-03-20T19:49:28.675Z] [INFO] Database connected
 [2026-03-20T19:49:28.679Z] [INFO] Server running on port 5000
+[2026-03-20T22:17:17.730Z] [ERROR] Error: Got a packet bigger than 'max_allowed_packet' bytes
+[2026-03-20T22:21:38.182Z] [INFO] New campaign created: "testing" by user 2

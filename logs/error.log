@@ -120,3 +120,4 @@
 [2026-03-20T19:38:04.141Z] [ERROR] Error: Op is not defined
 [2026-03-20T19:38:26.615Z] [ERROR] Error: Op is not defined
 [2026-03-20T19:38:56.637Z] [ERROR] Error: Op is not defined
+[2026-03-20T22:17:17.736Z] [ERROR] Error: Got a packet bigger than 'max_allowed_packet' bytes
