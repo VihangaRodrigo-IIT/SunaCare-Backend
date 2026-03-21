@@ -14,6 +14,7 @@ import {
   listMapReports,
   listPublicMapReports,
   updateReportMapVisibility,
+  updateReportMediaVisibility,
   deleteReport,
 } from '../controllers/report.controller.js';
 import { protect, authorize, optionalProtect } from '../middleware/auth.middleware.js';
@@ -49,6 +50,7 @@ router.get('/map/all', protect, authorize('responder'), listMapReports);
 router.get('/', protect, listReports);
 router.get('/:id', protect, getReport);
 router.patch('/:id/map-visibility', protect, authorize('responder'), updateReportMapVisibility);
+router.patch('/:id/media-visibility', protect, authorize('responder'), updateReportMediaVisibility);
 router.put('/:id/status', protect, authorize('responder'), updateStatus);
 router.patch('/:id/assign', protect, authorize('responder'), assignReport);
 router.put('/:id/flag', protect, flagReport);

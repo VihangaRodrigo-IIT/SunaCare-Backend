@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────
---  Sunacare Database Schema  — 17 tables
+--  Sunacare Database Schema  — 19 tables
 --  Import via phpMyAdmin or run: mysql -u root sunacare < schema.sql
 -- ─────────────────────────────────────────────────────────────────
 
@@ -8,6 +8,7 @@ USE sunacare;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS user_settings;
+DROP TABLE IF EXISTS article_reports;
 DROP TABLE IF EXISTS article_views;
 DROP TABLE IF EXISTS articles;
 DROP TABLE IF EXISTS post_comment_reports;
@@ -59,6 +60,7 @@ CREATE TABLE ngo_applications (
   org_type             ENUM('ngo','vet','shelter','rescue') NOT NULL DEFAULT 'ngo',
   org_address          TEXT         DEFAULT NULL,
   org_description      TEXT         DEFAULT NULL,
+  website              VARCHAR(255) DEFAULT NULL,
   registration_no      VARCHAR(100) DEFAULT NULL,
   document_url         VARCHAR(500) DEFAULT NULL,
   coverage_radius_km   INT          DEFAULT NULL,
@@ -129,6 +131,7 @@ CREATE TABLE reports (
   is_flagged       TINYINT(1)    NOT NULL DEFAULT 0,
   flag_count       INT           NOT NULL DEFAULT 0,
   show_on_user_map TINYINT(1)    NOT NULL DEFAULT 0,
+  hide_media_from_public TINYINT(1) NOT NULL DEFAULT 0,
   map_published_by INT           DEFAULT NULL,
   map_published_at DATETIME      DEFAULT NULL,
   created_by       INT UNSIGNED  DEFAULT NULL  COMMENT 'NULL = guest reporter',
@@ -365,7 +368,7 @@ CREATE TABLE articles (
   FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ── 15. article_views ────────────────────────────────────────────
+-- ── 16. article_views ────────────────────────────────────────────
 CREATE TABLE article_views (
   id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   article_id  INT UNSIGNED  NOT NULL,
@@ -378,7 +381,32 @@ CREATE TABLE article_views (
   FOREIGN KEY (user_id)    REFERENCES users(id)    ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ── 16. adoption_applications ────────────────────────────────────
+-- ── 17. article_reports ───────────────────────────────────────────
+CREATE TABLE article_reports (
+  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  article_id    INT UNSIGNED NOT NULL,
+  reported_by   INT UNSIGNED DEFAULT NULL,
+  reason        VARCHAR(120) NOT NULL,
+  details       TEXT         DEFAULT NULL,
+  reporter_name VARCHAR(120) DEFAULT NULL,
+  reporter_email VARCHAR(160) DEFAULT NULL,
+  status        ENUM('pending','reviewed','dismissed') NOT NULL DEFAULT 'pending',
+  admin_note    TEXT         DEFAULT NULL,
+  action_taken  ENUM('none','remove_article','revoke_author','dismiss') NOT NULL DEFAULT 'none',
+  reviewed_by   INT UNSIGNED DEFAULT NULL,
+  reviewed_at   DATETIME     DEFAULT NULL,
+  created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_article_reports_article_id (article_id),
+  INDEX idx_article_reports_status (status),
+  INDEX idx_article_reports_reported_by (reported_by),
+  INDEX idx_article_reports_reviewed_by (reviewed_by),
+  FOREIGN KEY (article_id)  REFERENCES articles(id) ON DELETE CASCADE,
+  FOREIGN KEY (reported_by) REFERENCES users(id)    ON DELETE SET NULL,
+  FOREIGN KEY (reviewed_by) REFERENCES users(id)    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ── 18. adoption_applications ────────────────────────────────────
 CREATE TABLE adoption_applications (
   id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   pet_id        INT UNSIGNED NOT NULL,
@@ -403,7 +431,7 @@ ALTER TABLE ngo_applications
   ADD CONSTRAINT fk_ngo_app_reviewer
   FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL;
 
--- ── 17. user_settings ────────────────────────────────────────────
+-- ── 19. user_settings ────────────────────────────────────────────
 -- One row per user. Auto-created on first settings load.
 -- Works for all roles: user, responder, admin.
 CREATE TABLE user_settings (

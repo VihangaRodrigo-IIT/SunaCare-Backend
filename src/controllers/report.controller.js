@@ -96,6 +96,8 @@ export const listReports = asyncHandler(async (req, res) => {
 
   if (req.user.role === 'responder') {
     where[Op.or] = [{ assigned_to: req.user.id }, { assigned_to: null }];
+  } else if (req.user.role === 'user') {
+    where.created_by = req.user.id;
   }
 
   const reports = await Report.findAll({
@@ -186,6 +188,8 @@ export const listPublicMapReports = asyncHandler(async (_req, res) => {
     lng: Number(report.lng),
     address: report.address,
     landmark: report.landmark,
+    media_url: cols.has('hide_media_from_public') && report.hide_media_from_public ? null : report.media_url,
+    hide_media_from_public: cols.has('hide_media_from_public') ? Boolean(report.hide_media_from_public) : false,
     published_at: report.map_published_at,
   }));
 
@@ -246,8 +250,64 @@ export const updateReportMapVisibility = asyncHandler(async (req, res) => {
   });
 });
 
+export const updateReportMediaVisibility = asyncHandler(async (req, res) => {
+  const cols = await getReportColumns();
+  if (!cols.has('hide_media_from_public')) {
+    return res.status(400).json({
+      success: false,
+      message: 'Database migration required for media visibility controls. Apply migrations/012_add_report_media_visibility.sql and restart backend.',
+    });
+  }
+
+  const report = await Report.findByPk(req.params.id);
+  if (!report) {
+    return res.status(404).json({ success: false, message: 'Report not found' });
+  }
+
+  if (req.user.role === 'responder' && report.assigned_to && report.assigned_to !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'You can only update media visibility for reports assigned to your organization',
+    });
+  }
+
+  const hideMedia = req.body.hide_media_from_public === true;
+  await report.update({ hide_media_from_public: hideMedia });
+
+  res.json({
+    success: true,
+    message: hideMedia ? 'Report image is now hidden from public live map' : 'Report image is now visible on public live map',
+    data: {
+      id: report.id,
+      hide_media_from_public: Boolean(report.hide_media_from_public),
+    },
+  });
+});
+
 export const updateStatus = asyncHandler(async (req, res) => {
-  const { status } = req.body;
+  const inputStatus = String(req.body?.status || '').trim().toLowerCase();
+  const statusAliases = {
+    pending: 'pending',
+    new: 'pending',
+    assigned: 'pending',
+    proceed: 'in-treatment',
+    processing: 'in-treatment',
+    'in-progress': 'in-treatment',
+    in_progress: 'in-treatment',
+    'in-treatment': 'in-treatment',
+    resolved: 'rescued',
+    rescued: 'rescued',
+    closed: 'closed',
+  };
+  const status = statusAliases[inputStatus];
+
+  if (!status) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid status. Allowed values: pending, proceed/in-treatment, rescued/resolved, closed.',
+    });
+  }
+
   const report = await Report.findByPk(req.params.id);
 
   if (!report) {

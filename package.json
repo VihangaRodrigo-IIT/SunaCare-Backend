@@ -5,6 +5,7 @@
   "main": "src/server.js",
   "type": "module",
   "scripts": {
+    "build": "node -e \"const fs=require('fs'); if(!fs.existsSync('src/server.js')){console.error('Missing src/server.js'); process.exit(1);} console.log('Backend build check passed (no transpilation required).');\"",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node database/seed.js"

@@ -14,6 +14,7 @@ import { PostCommentLike } from './PostCommentLike.model.js';
 import { PostLike } from './PostLike.model.js';
 import { Article } from './Article.model.js';
 import { ArticleView } from './ArticleView.model.js';
+import { ArticleReport } from './ArticleReport.model.js';
 import { UserSettings } from './UserSettings.model.js';
 
 // ─── NgoApplication ↔ User ───────────────────────────────────────────────────
@@ -70,10 +71,16 @@ User.hasMany(PostCommentLike, { foreignKey: 'user_id', as: 'post_comment_likes' 
 // ─── Articles & Views ─────────────────────────────────────────────────────────
 Article.belongsTo(User,  { foreignKey: 'author_id',  as: 'author' });
 Article.hasMany(ArticleView, { foreignKey: 'article_id', as: 'views' });
+Article.hasMany(ArticleReport, { foreignKey: 'article_id', as: 'article_reports' });
 ArticleView.belongsTo(Article, { foreignKey: 'article_id', as: 'article' });
+ArticleReport.belongsTo(Article, { foreignKey: 'article_id', as: 'article' });
 ArticleView.belongsTo(User,    { foreignKey: 'user_id',    as: 'viewer' });
+ArticleReport.belongsTo(User, { foreignKey: 'reported_by', as: 'reporter' });
+ArticleReport.belongsTo(User, { foreignKey: 'reviewed_by', as: 'reviewer' });
 User.hasMany(Article,     { foreignKey: 'author_id',  as: 'articles' });
 User.hasMany(ArticleView, { foreignKey: 'user_id',    as: 'article_views' });
+User.hasMany(ArticleReport, { foreignKey: 'reported_by', as: 'article_reports' });
+User.hasMany(ArticleReport, { foreignKey: 'reviewed_by', as: 'reviewed_article_reports' });
 
 // ─── User Settings ────────────────────────────────────────────────────────────
 User.hasOne(UserSettings, { foreignKey: 'user_id', as: 'settings' });
@@ -83,5 +90,6 @@ export {
   User, NgoApplication, NgoVerification, OtpVerification,
   Report, Pet, PetReport, Campaign, Donation,
   Post, PostComment, PostCommentReport, PostCommentLike, PostLike, Article, ArticleView,
+  ArticleReport,
   UserSettings,
 };

@@ -43,6 +43,7 @@ export const Report = sequelize.define('Report', {
 
   // Public live-map publishing (controlled by responder/admin)
   show_on_user_map: { type: DataTypes.BOOLEAN, defaultValue: false },
+  hide_media_from_public: { type: DataTypes.BOOLEAN, defaultValue: false },
   map_published_by: { type: DataTypes.INTEGER, allowNull: true },
   map_published_at: { type: DataTypes.DATE, allowNull: true },
 

@@ -14,6 +14,7 @@ export const NgoApplication = sequelize.define('NgoApplication', {
 	org_type:           { type: DataTypes.ENUM('ngo', 'vet', 'shelter', 'rescue'), defaultValue: 'ngo' },
 	org_address:        { type: DataTypes.TEXT,        allowNull: true },
 	org_description:    { type: DataTypes.TEXT,        allowNull: true },
+	website:            { type: DataTypes.STRING(255), allowNull: true },
 	registration_no:    { type: DataTypes.STRING(100), allowNull: true },
 	document_url:       { type: DataTypes.STRING(500), allowNull: true },
 	coverage_radius_km: { type: DataTypes.INTEGER,     allowNull: true },

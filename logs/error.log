@@ -1,0 +1,123 @@
+[2026-03-20T18:23:02.217Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:23:02.255Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:23:58.870Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:24:50.953Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:25:11.554Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:25:31.585Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:25:51.575Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:26:11.584Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:26:31.552Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:26:51.581Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:27:12.295Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:27:31.564Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:27:51.575Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:28:11.580Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:41:55.606Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:42:05.591Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:42:35.555Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:43:02.446Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:43:02.480Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:43:04.446Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:43:04.494Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:43:06.756Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:43:06.794Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:43:32.585Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:44:02.581Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:44:32.562Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:45:02.581Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:45:32.561Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:46:02.588Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:47:06.606Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:48:06.624Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:49:06.635Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:49:40.139Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:50:02.595Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:50:32.587Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:51:09.064Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:52:00.816Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:52:02.585Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:52:25.900Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:52:25.917Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:52:27.021Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T18:52:27.042Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T18:52:46.838Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T18:52:56.560Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:53:26.566Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:53:56.603Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:54:26.586Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:54:56.566Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:55:26.584Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:56:06.646Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:57:06.600Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:58:06.618Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:59:06.632Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:00:06.626Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:01:06.618Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:01:26.582Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:01:56.560Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:03:06.640Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:03:47.099Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:04:06.643Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:04:26.634Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:04:56.578Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:05:26.572Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:06:06.617Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:07:06.623Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:08:03.442Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:08:06.605Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:09:06.637Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:10:06.602Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:11:06.600Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:12:06.685Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:13:06.610Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:14:06.606Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:15:06.592Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:15:51.381Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:15:55.906Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:16:26.003Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:16:55.977Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:17:25.921Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:17:55.957Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:18:14.006Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:18:26.572Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:18:56.582Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:19:38.865Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:19:43.678Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:19:56.639Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:20:26.560Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:20:57.739Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:21:06.611Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:22:04.987Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:22:06.645Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:23:06.616Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:23:59.243Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:24:03.361Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:24:26.587Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:24:56.601Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:26:06.585Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:26:53.044Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:27:06.588Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:27:26.601Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:27:56.576Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:28:26.573Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:29:06.594Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:30:06.682Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:31:06.788Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:31:44.677Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:31:56.563Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:32:26.560Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:32:56.556Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:32:56.613Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:33:22.885Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:33:22.928Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:33:26.585Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:33:56.593Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:34:26.550Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:34:56.551Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:35:26.567Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:36:06.603Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:37:06.602Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:38:04.141Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:38:26.615Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:38:56.637Z] [ERROR] Error: Op is not defined
+[2026-03-20T22:17:17.736Z] [ERROR] Error: Got a packet bigger than 'max_allowed_packet' bytes

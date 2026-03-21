@@ -1,0 +1,162 @@
+[2026-03-20T13:47:04.637Z] [INFO] Database connected
+[2026-03-20T13:47:04.641Z] [INFO] Server running on port 5000
+[2026-03-20T17:46:16.539Z] [INFO] Database connected
+[2026-03-20T17:46:16.554Z] [INFO] Server running on port 5000
+[2026-03-20T18:22:25.182Z] [INFO] Database connected
+[2026-03-20T18:22:25.187Z] [INFO] Server running on port 5000
+[2026-03-20T18:22:38.276Z] [INFO] Database connected
+[2026-03-20T18:22:38.285Z] [INFO] Server running on port 5000
+[2026-03-20T18:22:44.808Z] [INFO] Database connected
+[2026-03-20T18:22:44.816Z] [INFO] Server running on port 5000
+[2026-03-20T18:23:02.215Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:23:02.252Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:23:58.869Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:24:50.952Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:25:11.553Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:25:31.583Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:25:51.572Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:26:11.582Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:26:31.551Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:26:36.110Z] [INFO] Database connected
+[2026-03-20T18:26:36.115Z] [INFO] Server running on port 5000
+[2026-03-20T18:26:51.580Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:27:12.292Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:27:31.561Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:27:51.572Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:28:11.579Z] [ERROR] Error: Unknown column 'Report.hide_media_from_public' in 'field list'
+[2026-03-20T18:41:41.531Z] [INFO] Database connected
+[2026-03-20T18:41:41.536Z] [INFO] Server running on port 5000
+[2026-03-20T18:41:55.604Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:42:05.590Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:42:35.554Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:43:02.443Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:43:02.479Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:43:04.445Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:43:04.493Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:43:06.755Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:43:06.792Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:43:32.584Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:44:02.579Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:44:32.561Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:45:02.580Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:45:32.560Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:46:02.587Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:47:06.604Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:48:06.621Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:49:06.633Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:49:40.138Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:50:02.592Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:50:32.584Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:51:08.777Z] [INFO] Database connected
+[2026-03-20T18:51:08.783Z] [INFO] Server running on port 5000
+[2026-03-20T18:51:09.063Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:51:16.388Z] [INFO] Database connected
+[2026-03-20T18:51:16.402Z] [INFO] Server running on port 5000
+[2026-03-20T18:52:00.809Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:52:02.580Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:52:25.899Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:52:25.916Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:52:27.020Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T18:52:27.041Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T18:52:46.837Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T18:52:56.558Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:53:26.564Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:53:56.602Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:54:26.585Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:54:56.563Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:55:26.582Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:56:06.644Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:57:06.598Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:58:06.616Z] [ERROR] Error: Op is not defined
+[2026-03-20T18:59:06.630Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:00:06.625Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:01:06.616Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:01:26.579Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:01:56.559Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:03:06.638Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:03:47.098Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:04:06.639Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:04:26.291Z] [INFO] Database connected
+[2026-03-20T19:04:26.298Z] [INFO] Server running on port 5000
+[2026-03-20T19:04:26.632Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:04:56.575Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:05:26.570Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:06:06.614Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:07:06.621Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:08:03.441Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:08:06.604Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:09:06.634Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:10:06.600Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:11:06.599Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:12:06.676Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:13:06.608Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:14:06.605Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:15:06.591Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:15:51.380Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:15:55.905Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:16:25.997Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:16:55.971Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:17:25.920Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:17:55.951Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:18:14.004Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:18:26.570Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:18:56.581Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:19:38.863Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:19:43.676Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:19:56.638Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:20:26.560Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:20:57.737Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:21:06.608Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:22:04.986Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:22:06.644Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:23:06.614Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:23:59.242Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:24:03.360Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:24:26.583Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:24:56.599Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:26:06.584Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:26:53.037Z] [ERROR] Error: Unknown column 'website' in 'field list'
+[2026-03-20T19:27:06.587Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:27:26.599Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:27:56.576Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:28:26.571Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:29:06.592Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:30:06.679Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:31:06.787Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:31:44.676Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:31:56.561Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:32:26.559Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:32:56.553Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:32:56.611Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:33:22.884Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:33:22.927Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:33:26.582Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:33:56.591Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:34:26.549Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:34:56.550Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:35:26.566Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:36:06.602Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:37:06.601Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:38:04.140Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:38:26.610Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:38:56.634Z] [ERROR] Error: Op is not defined
+[2026-03-20T19:39:51.217Z] [INFO] Database connected
+[2026-03-20T19:39:51.221Z] [INFO] Server running on port 5000
+[2026-03-20T19:40:45.362Z] [INFO] Database connected
+[2026-03-20T19:40:45.367Z] [INFO] Server running on port 5000
+[2026-03-20T19:46:05.450Z] [INFO] Database connected
+[2026-03-20T19:46:05.462Z] [INFO] Server running on port 5000
+[2026-03-20T19:49:04.579Z] [INFO] Database connected
+[2026-03-20T19:49:04.591Z] [INFO] Server running on port 5000
+[2026-03-20T19:49:28.675Z] [INFO] Database connected
+[2026-03-20T19:49:28.679Z] [INFO] Server running on port 5000
+[2026-03-20T22:17:17.730Z] [ERROR] Error: Got a packet bigger than 'max_allowed_packet' bytes
+[2026-03-20T22:21:38.182Z] [INFO] New campaign created: "testing" by user 2
+[2026-03-21T06:36:37.566Z] [INFO] Database connected
+[2026-03-21T06:36:37.572Z] [INFO] Server running on port 5000
+[2026-03-21T06:36:37.605Z] [INFO] Database connected
+[2026-03-21T06:36:37.609Z] [INFO] Server running on port 5000
+[2026-03-21T06:36:37.874Z] [INFO] Database connected
+[2026-03-21T06:36:37.907Z] [INFO] Server running on port 5000
+[2026-03-21T06:39:14.028Z] [INFO] Database connected
+[2026-03-21T06:39:14.032Z] [INFO] Server running on port 5000
