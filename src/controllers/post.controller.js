@@ -4,6 +4,7 @@ import { logger } from '../utils/logger.js';
 import { sequelize } from '../config/database.js';
 
 const MODERATOR_ROLES = new Set(['admin', 'responder']);
+const SYSTEM_ONLY_POST_TYPES = new Set(['urgent_rescue_update', 'lost_pet']);
 let cachedPostAuthorAttrs = null;
 
 async function getPostAuthorAttrs() {
@@ -275,6 +276,15 @@ export const getMyPosts = asyncHandler(async (req, res) => {
 
 export const createPost = asyncHandler(async (req, res) => {
   const { title, body, image_url, post_type } = req.body;
+  const normalizedPostType = typeof post_type === 'string' ? post_type.trim().toLowerCase() : '';
+
+  if (req.user?.role === 'responder' && SYSTEM_ONLY_POST_TYPES.has(normalizedPostType)) {
+    return res.status(403).json({
+      success: false,
+      message: 'This category is reserved for one-tap report publishing and cannot be created manually.',
+    });
+  }
+
   const uploadedImageUrls = getUploadedPostImageUrls(req);
   const imageUrls = mergeImageUrls([], req.body.image_urls, image_url, uploadedImageUrls);
 
