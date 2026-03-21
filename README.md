@@ -218,6 +218,13 @@ All endpoints are prefixed with `/api`.
 
 ---
 
+## Notes For Maintainers
+
+- NGO credential email delivery in `ngo.controller.js` is currently a placeholder workflow.
+- `createCredentials` and `resendCredentials` intentionally update DB state and API response even without an external mail provider.
+- Add your mail integration in those handlers when SMTP/provider credentials are available.
+- Admin/responder settings toggles persist through `/api/settings` with boolean fields such as `two_factor_enabled` and notification flags.
+
 ## 🛡 Role Hierarchy
 
 ```

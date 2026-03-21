@@ -36,8 +36,15 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+if (String(process.env.TRUST_PROXY || 'false').toLowerCase() === 'true') {
+  app.set('trust proxy', 1);
+}
+
 const allowedOrigins = new Set(
-  (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:3001,http://localhost:3002')
+  (
+    process.env.ALLOWED_ORIGINS
+    || 'https://app.sunacare.org,https://admin.sunacare.org,https://responder.sunacare.org,http://localhost:3000,http://localhost:3001,http://localhost:3002'
+  )
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean),

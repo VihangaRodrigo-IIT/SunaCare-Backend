@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listArticles, listAllArticles, getArticle, createArticle, updateArticle, deleteArticle } from '../controllers/article.controller.js';
+import { createArticleReport, listArticleReports, reviewArticleReport } from '../controllers/articleReport.controller.js';
 import { protect, authorize, optionalProtect } from '../middleware/auth.middleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -29,11 +30,14 @@ const upload = multer({
 
 const router = Router();
 
-router.get('/all', protect, authorize('responder'), listAllArticles);  // responder+ — includes drafts
-router.get('/',    listArticles);                                       // public — published only
-router.get('/:id', optionalProtect, getArticle);                       // public + optional auth (for view tracking)
-router.post('/',         protect, authorize('responder'), upload.single('cover_image'), createArticle);
-router.put('/:id',       protect, authorize('responder'), upload.single('cover_image'), updateArticle);
-router.delete('/:id',    protect, authorize('responder'), deleteArticle);
+router.get('/all', protect, authorize('responder'), listAllArticles); // responder+ — includes drafts
+router.get('/reports/all', protect, authorize('admin'), listArticleReports); // admin moderation queue
+router.get('/', listArticles); // public — published only
+router.get('/:id', optionalProtect, getArticle); // public + optional auth (for view tracking)
+router.post('/:id/report', optionalProtect, createArticleReport); // optional auth
+router.patch('/reports/:reportId/review', protect, authorize('admin'), reviewArticleReport);
+router.post('/', protect, authorize('responder'), upload.single('cover_image'), createArticle);
+router.put('/:id', protect, authorize('responder'), upload.single('cover_image'), updateArticle);
+router.delete('/:id', protect, authorize('responder'), deleteArticle);
 
 export default router;
