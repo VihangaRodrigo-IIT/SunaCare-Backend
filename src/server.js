@@ -40,14 +40,28 @@ if (String(process.env.TRUST_PROXY || 'false').toLowerCase() === 'true') {
   app.set('trust proxy', 1);
 }
 
-const allowedOrigins = new Set(
-  (
-    process.env.ALLOWED_ORIGINS
-    || 'https://app.sunacare.org,https://admin.sunacare.org,https://responder.sunacare.org,http://localhost:3000,http://localhost:3001,http://localhost:3002'
-  )
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean),
+import cors from 'cors';
+
+const allowedOrigins = [
+  'https://app.sunacare.org',
+  'https://admin.sunacare.org',
+  'https://responder.sunacare.org',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS not allowed'));
+      }
+    },
+    credentials: true,
+  })
 );
 
 function isAllowedOrigin(origin) {
