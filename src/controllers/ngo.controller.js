@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import { Op } from 'sequelize';
 import { NgoApplication, NgoVerification, User } from '../models/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -42,6 +41,15 @@ function normalizeOrgTypeForDb(value) {
 function orgTypeLabel(value) {
   const key = String(value || '').toLowerCase();
   return ORG_TYPE_TO_LABEL[key] || 'Animal Welfare';
+}
+
+function parseCoverageRadius(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return null;
+  if (parsed < 1) return 1;
+  if (parsed > 500) return 500;
+  return parsed;
 }
 
 function mapNgoForMapResponse(app) {
@@ -103,7 +111,7 @@ export const submitApplication = asyncHandler(async (req, res) => {
     registration_no: registrationNo,
     document_url: documentUrl,
     org_address: orgAddress,
-    coverage_radius_km: coverageRadiusKm || null,
+    coverage_radius_km: parseCoverageRadius(coverageRadiusKm),
     org_description: orgDescription,
   });
 
@@ -197,7 +205,8 @@ export const createCredentials = asyncHandler(async (req, res) => {
     reviewed_at: new Date(),
   });
 
-  // TODO: send email with credentials
+  // Email provider integration is not configured yet.
+  // Credentials are returned in the API response and stored in verification row.
 
   res.status(201).json({ success: true, message: 'Credentials created and NGO approved', username });
 });
@@ -212,8 +221,8 @@ export const resendCredentials = asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, message: 'No credentials found for this application. Generate credentials first.' });
   }
 
-  // TODO: send email with credentials
-  // For now mark as resent and return success
+  // Email provider integration is not configured yet.
+  // For now we only mark this record as resent.
   await verification.update({ email_sent: true });
 
   res.json({
@@ -303,7 +312,7 @@ export const createMapNgo = asyncHandler(async (req, res) => {
     org_type: normalizeOrgTypeForDb(req.body.org_type),
     org_address: req.body.org_address || null,
     org_description: req.body.org_description || req.body.bio || null,
-    coverage_radius_km: req.body.coverage_radius_km || null,
+    coverage_radius_km: parseCoverageRadius(req.body.coverage_radius_km),
     approval_status: 'approved',
     reviewed_by: req.user.id,
     reviewed_at: new Date(),
@@ -340,12 +349,14 @@ export const updateMapNgo = asyncHandler(async (req, res) => {
 
   const updates = {
     org_name: req.body.org_name,
-    org_type: req.body.org_type !== undefined ? normalizeOrgTypeForDb(req.body.org_type) : undefined,
+    org_type: Object.hasOwn(req.body, 'org_type') ? normalizeOrgTypeForDb(req.body.org_type) : undefined,
     org_address: req.body.org_address,
     org_description: req.body.org_description ?? req.body.bio,
     phone: req.body.phone,
     email: req.body.email,
-    coverage_radius_km: req.body.coverage_radius_km,
+    coverage_radius_km: Object.hasOwn(req.body, 'coverage_radius_km')
+      ? parseCoverageRadius(req.body.coverage_radius_km)
+      : undefined,
     latitude: req.body.latitude,
     longitude: req.body.longitude,
   };
@@ -413,18 +424,24 @@ export const upsertMyMapNgo = asyncHandler(async (req, res) => {
   const updates = {
     contact_name: req.body.contact_name,
     org_name: req.body.org_name,
-    org_type: req.body.org_type !== undefined ? normalizeOrgTypeForDb(req.body.org_type) : undefined,
+    org_type: Object.hasOwn(req.body, 'org_type') ? normalizeOrgTypeForDb(req.body.org_type) : undefined,
     org_address: req.body.org_address,
     org_description: req.body.org_description ?? req.body.bio,
     phone: req.body.phone,
     email: req.body.email,
-    coverage_radius_km: req.body.coverage_radius_km,
+    coverage_radius_km: Object.hasOwn(req.body, 'coverage_radius_km')
+      ? parseCoverageRadius(req.body.coverage_radius_km)
+      : undefined,
     latitude: req.body.latitude,
     longitude: req.body.longitude,
     pinned_by: req.user.id,
   };
-  if (cols.has('map_pinned')) updates.map_pinned = req.body.map_pinned === false ? false : true;
-  if (cols.has('show_on_user_map')) updates.show_on_user_map = req.body.show_on_user_map !== undefined ? !!req.body.show_on_user_map : true;
+  if (cols.has('map_pinned')) updates.map_pinned = req.body.map_pinned !== false;
+  if (cols.has('show_on_user_map')) {
+    updates.show_on_user_map = Object.hasOwn(req.body, 'show_on_user_map')
+      ? !!req.body.show_on_user_map
+      : true;
+  }
   if (cols.has('website')) updates.website = req.body.website;
 
   Object.keys(updates).forEach((key) => {
