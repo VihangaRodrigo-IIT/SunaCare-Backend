@@ -1,6 +1,7 @@
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../config/database.js';
 //hi
+//Hello
 export const AdoptionApplication = sequelize.define('AdoptionApplication', {
   id: {
     type: DataTypes.INTEGER,
