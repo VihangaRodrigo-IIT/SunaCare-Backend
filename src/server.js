@@ -131,10 +131,47 @@ app.use('/api/settings', settingsRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
+async function ensureOtpUpdatedAtDefault() {
+  try {
+    const qi = sequelize.getQueryInterface();
+    const table = await qi.describeTable('otp_verifications');
+    const updatedAt = table?.updated_at;
+
+    // Some existing databases have updated_at as NOT NULL without default,
+    // which breaks inserts because OTP model does not manage updated_at.
+    if (!updatedAt) return;
+
+    const hasCurrentTimestampDefault = String(updatedAt.defaultValue || '')
+      .toUpperCase()
+      .includes('CURRENT_TIMESTAMP');
+
+    if (updatedAt.allowNull === false && !hasCurrentTimestampDefault) {
+      await sequelize.query(`
+        UPDATE otp_verifications
+        SET updated_at = created_at
+        WHERE updated_at IS NULL
+      `);
+
+      await sequelize.query(`
+        ALTER TABLE otp_verifications
+        MODIFY COLUMN updated_at DATETIME NOT NULL
+        DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
+      `);
+
+      logger.info('Repaired otp_verifications.updated_at default');
+    }
+  } catch (err) {
+    logger.warn('Skipped otp_verifications.updated_at guard:', err?.message || err);
+  }
+}
+
 async function start() {
   try {
     await sequelize.authenticate();
     logger.info('Database connected');
+
+    await ensureOtpUpdatedAtDefault();
 
     if (process.env.DB_SYNC === 'true') {
       await sequelize.sync({ alter: true });
