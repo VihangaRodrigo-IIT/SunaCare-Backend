@@ -1,7 +1,15 @@
-import { sequelize } from '../config/database.js';
-import { User, NgoApplication, Report, Pet, Campaign, Donation, Post, Article } from '../models/index.js';
+import { User, NgoApplication, NgoVerification, Report, Pet, Campaign, Donation, Post, Article } from '../models/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { Op } from 'sequelize';
+
+function generateDefaultPassword(length = 12) {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
+  let password = '';
+  for (let i = 0; i < length; i += 1) {
+    password += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return password;
+}
 
 // GET /api/dashboard/admin
 export const adminDashboard = asyncHandler(async (req, res) => {
@@ -87,8 +95,68 @@ export const approveOrg = asyncHandler(async (req, res) => {
   const app = await NgoApplication.findByPk(req.params.id);
   if (!app) return res.status(404).json({ success: false, message: 'Application not found' });
 
+  const loginEmail = String(app.email || '').trim().toLowerCase();
+  if (!loginEmail) {
+    return res.status(400).json({ success: false, message: 'Application email is required to approve and create credentials' });
+  }
+
+  let verification = await NgoVerification.findOne({ where: { application_id: app.id } });
+  let user = verification?.user_id ? await User.findByPk(verification.user_id) : null;
+
+  if (!user) {
+    user = await User.findOne({ where: { role: 'responder', email: loginEmail } });
+  }
+
+  let plainPassword = verification?.password_plain || '';
+  if (!plainPassword) {
+    plainPassword = generateDefaultPassword();
+  }
+
+  if (!user) {
+    user = await User.create({
+      name: app.contact_name,
+      email: loginEmail,
+      password: plainPassword,
+      role: 'responder',
+      phone: app.phone,
+      ngo_application_id: app.id,
+      is_active: true,
+    });
+  } else {
+    await user.update({
+      role: 'responder',
+      ngo_application_id: app.id,
+      is_active: true,
+      password: plainPassword,
+    });
+  }
+
+  if (verification) {
+    await verification.update({
+      user_id: user.id,
+      username: loginEmail,
+      password_plain: plainPassword,
+    });
+  } else {
+    await NgoVerification.create({
+      application_id: app.id,
+      user_id: user.id,
+      username: loginEmail,
+      password_plain: plainPassword,
+      email_sent: false,
+    });
+  }
+
   await app.update({ approval_status: 'approved', reviewed_by: req.user.id, reviewed_at: new Date() });
-  res.json({ success: true, message: 'Organisation approved' });
+
+  res.json({
+    success: true,
+    message: 'Organisation approved and credentials generated',
+    credentials: {
+      login_email: loginEmail,
+      password: plainPassword,
+    },
+  });
 });
 
 // PATCH /api/dashboard/reject-org/:id  (admin)
@@ -102,5 +170,20 @@ export const rejectOrg = asyncHandler(async (req, res) => {
     reviewed_by: req.user.id,
     reviewed_at: new Date(),
   });
+
+  // Revoke responder portal access for accounts tied to this NGO application.
+  await User.update(
+    { is_active: false },
+    {
+      where: {
+        role: 'responder',
+        [Op.or]: [
+          { ngo_application_id: app.id },
+          { email: String(app.email || '').toLowerCase() },
+        ],
+      },
+    }
+  );
+
   res.json({ success: true, message: 'Organisation rejected' });
 });
