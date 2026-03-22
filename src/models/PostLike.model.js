@@ -8,5 +8,8 @@ export const PostLike = sequelize.define('PostLike', {
 }, {
   tableName: 'post_likes',
   underscored: true,
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: false,
   indexes: [{ unique: true, fields: ['post_id', 'user_id'] }],
 });

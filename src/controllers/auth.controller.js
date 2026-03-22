@@ -1,7 +1,9 @@
-import jwt from 'jsonwebtoken';
 import { User, OtpVerification } from '../models/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { generateToken } from '../utils/generateToken.js';
+import { sendOtpEmail } from '../utils/mailer.js';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // POST /api/auth/register
 export const register = asyncHandler(async (req, res) => {
@@ -60,19 +62,40 @@ export const sendOtp = asyncHandler(async (req, res) => {
   const { identifier, type = 'email_verification' } = req.body;
   if (!identifier) return res.status(400).json({ success: false, message: 'identifier is required' });
 
+  const normalizedIdentifier = String(identifier).trim().toLowerCase();
+  if (!normalizedIdentifier) {
+    return res.status(400).json({ success: false, message: 'identifier is required' });
+  }
+
+  if (type === 'email_verification' && !EMAIL_REGEX.test(normalizedIdentifier)) {
+    return res.status(400).json({ success: false, message: 'A valid email is required' });
+  }
+
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expires_at = new Date(Date.now() + 10 * 60 * 1000); // 10 min
 
   // Invalidate previous unused OTPs for same identifier+type
   await OtpVerification.update(
     { is_used: true },
-    { where: { identifier, type, is_used: false } }
+    { where: { identifier: normalizedIdentifier, type, is_used: false } }
   );
 
-  await OtpVerification.create({ identifier, otp_code: code, type, expires_at });
+  await OtpVerification.create({ identifier: normalizedIdentifier, otp_code: code, type, expires_at });
 
-  // TODO: send email/SMS — for now return code in dev only
+  let emailResult = { sent: false, reason: 'not_attempted' };
+  if (type === 'email_verification') {
+    emailResult = await sendOtpEmail({ to: normalizedIdentifier, code, expiresInMinutes: 10 });
+  }
+
+  if (type === 'email_verification' && !emailResult.sent && process.env.NODE_ENV === 'production') {
+    return res.status(503).json({
+      success: false,
+      message: 'Unable to send OTP email. Please try again later.',
+    });
+  }
+
   const payload = { success: true, message: 'OTP sent' };
+  if (type === 'email_verification') payload.delivery = emailResult.sent ? 'email' : 'debug';
   if (process.env.NODE_ENV !== 'production') payload.debug_otp = code;
 
   res.json(payload);
@@ -85,8 +108,10 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: 'identifier and otp_code are required' });
   }
 
+  const normalizedIdentifier = String(identifier).trim().toLowerCase();
+
   const otp = await OtpVerification.findOne({
-    where: { identifier, otp_code, type, is_used: false },
+    where: { identifier: normalizedIdentifier, otp_code: String(otp_code).trim(), type, is_used: false },
     order: [['created_at', 'DESC']],
   });
 
@@ -98,7 +123,7 @@ export const verifyOtp = asyncHandler(async (req, res) => {
 
   // Mark user as email verified if relevant
   if (type === 'email_verification') {
-    await User.update({ email_verified: true }, { where: { email: identifier } });
+    await User.update({ email_verified: true }, { where: { email: normalizedIdentifier } });
   }
 
   res.json({ success: true, message: 'OTP verified' });
