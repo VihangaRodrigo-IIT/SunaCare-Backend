@@ -10,8 +10,8 @@ async function seed() {
   await sequelize.authenticate();
   console.log('DB connected');
 
-  await sequelize.sync({ force: true });
-  console.log('Tables recreated');
+  //await sequelize.sync({ force: true });
+  console.log('Using existing schema...');
 
   const rounds = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
 
