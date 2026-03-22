@@ -117,7 +117,7 @@ export const submitApplication = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: 'Application submitted. You will receive credentials via email after admin approval.',
+    message: 'Application submitted. After admin approval, credentials will be shared with your organization manually.',
     application: { id: application.id, org_name: application.org_name, approval_status: application.approval_status },
   });
 });
@@ -157,10 +157,16 @@ export const getApplication = asyncHandler(async (req, res) => {
 
 // POST /api/ngos/:id/credentials  (admin — approve + create login)
 export const createCredentials = asyncHandler(async (req, res) => {
-  const { username, password, send_email = true } = req.body;
+  const { password, send_email = true } = req.body;
 
   const application = await NgoApplication.findByPk(req.params.id);
   if (!application) return res.status(404).json({ success: false, message: 'Application not found' });
+
+  // Login credential is always email for NGO/responder accounts.
+  const loginEmail = String(application.email || '').trim().toLowerCase();
+  if (!loginEmail) {
+    return res.status(400).json({ success: false, message: 'Application email is required to generate credentials' });
+  }
 
   // Check if credentials already exist (update flow)
   const existing = await NgoVerification.findOne({ where: { application_id: application.id } });
@@ -171,12 +177,16 @@ export const createCredentials = asyncHandler(async (req, res) => {
     if (user) await user.update({ password });
 
     await existing.update({
-      username,
+      username: loginEmail,
       password_plain: password,
       email_sent: send_email,
     });
 
-    return res.json({ success: true, message: 'Credentials updated', username });
+    return res.json({
+      success: true,
+      message: 'Credentials updated. Share these credentials manually with the NGO. NGO must sign in using the organization email address.',
+      login_email: loginEmail,
+    });
   }
 
   // Create new responder user account
@@ -193,7 +203,7 @@ export const createCredentials = asyncHandler(async (req, res) => {
   await NgoVerification.create({
     application_id: application.id,
     user_id: user.id,
-    username,
+    username: loginEmail,
     password_plain: password,
     email_sent: send_email,
   });
@@ -208,7 +218,11 @@ export const createCredentials = asyncHandler(async (req, res) => {
   // Email provider integration is not configured yet.
   // Credentials are returned in the API response and stored in verification row.
 
-  res.status(201).json({ success: true, message: 'Credentials created and NGO approved', username });
+  res.status(201).json({
+    success: true,
+    message: 'Credentials created and NGO approved. Share these credentials manually with the NGO. NGO must sign in using the organization email address.',
+    login_email: loginEmail,
+  });
 });
 
 // POST /api/ngos/:id/credentials/resend  (admin — resend login email)
@@ -228,7 +242,7 @@ export const resendCredentials = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: 'Credentials resent successfully',
-    username: verification.username,
+    login_email: application.email,
   });
 });
 

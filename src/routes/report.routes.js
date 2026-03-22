@@ -54,7 +54,7 @@ router.patch('/:id/media-visibility', protect, authorize('responder'), updateRep
 router.put('/:id/status', protect, authorize('responder'), updateStatus);
 router.patch('/:id/assign', protect, authorize('responder'), assignReport);
 router.put('/:id/flag', protect, flagReport);
-router.put('/:id/unflag', protect, authorize('admin'), unflagReport);
+router.put('/:id/unflag', protect, authorize('admin', 'responder'), unflagReport);
 router.delete('/:id', protect, authorize('admin'), deleteReport);
 
 export default router;

@@ -16,4 +16,10 @@ export const OtpVerification = sequelize.define('OtpVerification', {
   expires_at: { type: DataTypes.DATE,    allowNull: false },
   is_used:    { type: DataTypes.BOOLEAN, defaultValue: false },
 
-}, { tableName: 'otp_verifications', underscored: true });
+}, {
+  tableName: 'otp_verifications',
+  underscored: true,
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: false,
+});

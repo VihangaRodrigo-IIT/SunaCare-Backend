@@ -13,6 +13,7 @@ coverage/
 # logs
 logs/
 *.log
+REPORTING_INTEGRATION_LOG.txt
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -26,3 +27,5 @@ uploads/
 Thumbs.db
 .vscode/
 .idea/
+.env
+

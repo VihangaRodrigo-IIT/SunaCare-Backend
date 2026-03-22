@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { Report, User } from '../models/index.js';
+import { Post, Report, User } from '../models/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sequelize } from '../config/database.js';
 
@@ -38,6 +38,72 @@ function parseBoolean(value, fallback = false) {
   return fallback;
 }
 
+function normalizeString(value) {
+  return String(value || '').trim();
+}
+
+function normalizeLower(value) {
+  return normalizeString(value).toLowerCase();
+}
+
+function isLostPetIssue(issue) {
+  const normalized = normalizeLower(issue);
+  return normalized.includes('lost') || normalized.includes('missing');
+}
+
+function getReportTrackingNumber(report) {
+  const explicit = normalizeString(report?.report_number);
+  if (explicit) return explicit;
+  const id = Number(report?.id || 0);
+  return id > 0 ? `RPT-${String(id).padStart(5, '0')}` : 'RPT-UNKNOWN';
+}
+
+function buildAutoCommunityPostBody(report, postType) {
+  const tracking = getReportTrackingNumber(report);
+  const issue = normalizeString(report?.issue) || 'Animal case update';
+  const description = normalizeString(report?.description);
+  const address = normalizeString(report?.address || report?.landmark || 'Location unavailable');
+  const urgency = normalizeLower(report?.urgency || 'medium');
+
+  const headline = postType === 'lost_pet'
+    ? `Lost pet alert (${tracking})`
+    : `Urgent rescue update (${tracking})`;
+
+  const lines = [
+    headline,
+    `Issue: ${issue}`,
+    `Location: ${address}`,
+    `Urgency: ${urgency}`,
+  ];
+
+  if (description) lines.push('', description);
+  return lines.join('\n');
+}
+
+async function createAutoCommunityPostFromReport({ report, authorId, postType }) {
+  if (!authorId) return;
+
+  const tracking = getReportTrackingNumber(report);
+  const title = postType === 'lost_pet'
+    ? `Lost Pet Alert • ${tracking}`
+    : `Urgent Rescue Update • ${tracking}`;
+
+  const existing = await Post.findOne({ where: { title, post_type: postType } });
+  if (existing) return;
+
+  const body = buildAutoCommunityPostBody(report, postType);
+  const imageUrl = normalizeString(report?.media_url);
+
+  await Post.create({
+    title,
+    body,
+    image_url: imageUrl || null,
+    image_urls: imageUrl ? JSON.stringify([imageUrl]) : null,
+    post_type: postType,
+    author_id: authorId,
+  });
+}
+
 function buildReportPayload(body, user, file) {
   const imageUrl = file ? `/uploads/reports/${file.filename}` : body.media_url || null;
 
@@ -65,7 +131,14 @@ function buildReportPayload(body, user, file) {
 }
 
 export const createGuestReport = asyncHandler(async (req, res) => {
-  const report = await Report.create(buildReportPayload(req.body, null, req.file));
+  const payload = buildReportPayload(req.body, null, req.file);
+  if (isLostPetIssue(payload.issue)) {
+    payload.show_on_user_map = true;
+    payload.map_published_at = new Date();
+    payload.map_published_by = null;
+  }
+
+  const report = await Report.create(payload);
 
   const padded = String(report.id).padStart(5, '0');
   await report.update({ report_number: `RPT-${padded}` });
@@ -78,10 +151,27 @@ export const createGuestReport = asyncHandler(async (req, res) => {
 });
 
 export const createReport = asyncHandler(async (req, res) => {
-  const report = await Report.create(buildReportPayload(req.body, req.user, req.file));
+  const payload = buildReportPayload(req.body, req.user, req.file);
+  const lostPetFlow = isLostPetIssue(payload.issue);
+
+  if (lostPetFlow) {
+    payload.show_on_user_map = true;
+    payload.map_published_at = new Date();
+    payload.map_published_by = req.user?.id || null;
+  }
+
+  const report = await Report.create(payload);
 
   const padded = String(report.id).padStart(5, '0');
   await report.update({ report_number: `RPT-${padded}` });
+
+  if (lostPetFlow) {
+    await createAutoCommunityPostFromReport({
+      report,
+      authorId: req.user?.id || report.created_by,
+      postType: 'lost_pet',
+    });
+  }
 
   res.status(201).json({ success: true, report: report.toJSON() });
 });
@@ -181,6 +271,8 @@ export const listPublicMapReports = asyncHandler(async (_req, res) => {
     id: report.id,
     case_number: report.report_number || `RPT-${String(report.id).padStart(5, '0')}`,
     title: report.issue || 'Rescue Report',
+    issue: report.issue,
+    category: report.category,
     description: report.description,
     urgency: report.urgency,
     status: report.status,
@@ -233,11 +325,21 @@ export const updateReportMapVisibility = asyncHandler(async (req, res) => {
   }
 
   const shouldShow = req.body.show_on_user_map === true;
+  const wasShown = Boolean(report.show_on_user_map);
   await report.update({
     show_on_user_map: shouldShow,
     map_published_by: shouldShow ? req.user.id : null,
     map_published_at: shouldShow ? new Date() : null,
   });
+
+  if (shouldShow && !wasShown) {
+    const postType = isLostPetIssue(report.issue) ? 'lost_pet' : 'urgent_rescue_update';
+    await createAutoCommunityPostFromReport({
+      report,
+      authorId: req.user.id,
+      postType,
+    });
+  }
 
   res.json({
     success: true,
@@ -345,6 +447,13 @@ export const unflagReport = asyncHandler(async (req, res) => {
 
   if (!report) {
     return res.status(404).json({ success: false, message: 'Report not found' });
+  }
+
+  if (req.user.role === 'responder' && report.assigned_to && report.assigned_to !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'You can only remove false-report notices for reports assigned to your organization',
+    });
   }
 
   await report.update({ is_flagged: false, flag_count: 0 });
