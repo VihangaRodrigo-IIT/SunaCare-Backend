@@ -9,11 +9,29 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const register = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
 
+  if (!email || !EMAIL_REGEX.test(email.toLowerCase())) {
+    return res.status(400).json({ success: false, message: 'A valid email is required' });
+  }
+
   if (await User.findOne({ where: { email: email.toLowerCase() } })) {
     return res.status(400).json({ success: false, message: 'Email already registered' });
   }
 
-  const user = await User.create({ name, email, password, role: 'user' });
+  // Check if email has been verified via OTP
+  const normalizedEmail = email.toLowerCase();
+  const verifiedOtp = await OtpVerification.findOne({
+    where: { identifier: normalizedEmail, type: 'email_verification', is_used: true },
+    order: [['created_at', 'DESC']],
+  });
+
+  const user = await User.create({
+    name,
+    email: normalizedEmail,
+    password,
+    role: 'user',
+    email_verified: !!verifiedOtp, // Set to true if OTP was verified
+  });
+
   const token = generateToken(user.id, user.role);
 
   res.status(201).json({
@@ -71,6 +89,27 @@ export const sendOtp = asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: 'A valid email is required' });
   }
 
+  // Check if email is already registered (for signup/email verification)
+  if (type === 'email_verification') {
+    const existingUser = await User.findOne({ where: { email: normalizedIdentifier } });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'Email already registered. Please sign in instead.' });
+    }
+  }
+
+  // Validate email format for password_reset
+  if (type === 'password_reset' && !EMAIL_REGEX.test(normalizedIdentifier)) {
+    return res.status(400).json({ success: false, message: 'A valid email is required' });
+  }
+
+  // Check if user exists (for password reset)
+  if (type === 'password_reset') {
+    const user = await User.findOne({ where: { email: normalizedIdentifier } });
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'No account found with this email address.' });
+    }
+  }
+
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expires_at = new Date(Date.now() + 10 * 60 * 1000); // 10 min
 
@@ -80,14 +119,18 @@ export const sendOtp = asyncHandler(async (req, res) => {
     { where: { identifier: normalizedIdentifier, type, is_used: false } }
   );
 
-  await OtpVerification.create({ identifier: normalizedIdentifier, otp_code: code, type, expires_at });
+  // Create new OTP record
+  await OtpVerification.create({
+    identifier: normalizedIdentifier,
+    otp_code: code,
+    type,
+    expires_at,
+  });
 
-  let emailResult = { sent: false, reason: 'not_attempted' };
-  if (type === 'email_verification') {
-    emailResult = await sendOtpEmail({ to: normalizedIdentifier, code, expiresInMinutes: 10 });
-  }
+  // Send email with OTP
+  const emailResult = await sendOtpEmail({ to: normalizedIdentifier, code, expiresInMinutes: 10 });
 
-  if (type === 'email_verification' && !emailResult.sent && process.env.NODE_ENV === 'production') {
+  if (!emailResult.sent && process.env.NODE_ENV === 'production') {
     return res.status(503).json({
       success: false,
       message: 'Unable to send OTP email. Please try again later.',
@@ -95,7 +138,7 @@ export const sendOtp = asyncHandler(async (req, res) => {
   }
 
   const payload = { success: true, message: 'OTP sent' };
-  if (type === 'email_verification') payload.delivery = emailResult.sent ? 'email' : 'debug';
+  payload.delivery = emailResult.sent ? 'email' : 'debug';
   if (process.env.NODE_ENV !== 'production') payload.debug_otp = code;
 
   res.json(payload);
@@ -119,14 +162,70 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
   }
 
-  await otp.update({ is_used: true });
+  // For password reset flow, keep OTP usable until final password update.
+  if (type !== 'password_reset') {
+    await otp.update({ is_used: true });
+  }
 
-  // Mark user as email verified if relevant
+  // If user exists and this is email verification, mark them as verified
   if (type === 'email_verification') {
-    await User.update({ email_verified: true }, { where: { email: normalizedIdentifier } });
+    const user = await User.findOne({ where: { email: normalizedIdentifier } });
+    if (user) {
+      await user.update({ email_verified: true });
+    }
   }
 
   res.json({ success: true, message: 'OTP verified' });
+  });
+
+  // POST /api/auth/reset-password
+  export const resetPassword = asyncHandler(async (req, res) => {
+    const { email, otp_code, newPassword } = req.body;
+
+    if (!email || !otp_code || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'email, otp_code, and newPassword are required',
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters long',
+      });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    // Find and validate OTP
+    const otp = await OtpVerification.findOne({
+      where: {
+        identifier: normalizedEmail,
+        otp_code: String(otp_code).trim(),
+        type: 'password_reset',
+        is_used: false,
+      },
+      order: [['created_at', 'DESC']],
+    });
+
+    if (!otp || new Date() > otp.expires_at) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    // Find user and update password
+    const user = await User.findOne({ where: { email: normalizedEmail } });
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'User not found' });
+    }
+
+    // Mark OTP as used
+    await otp.update({ is_used: true });
+
+    // Update user password
+    await user.update({ password: newPassword });
+
+    res.json({ success: true, message: 'Password reset successfully' });
 });
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
