@@ -96,8 +96,16 @@ export const submitApplication = asyncHandler(async (req, res) => {
     registrationNo, documentUrl, orgAddress, coverageRadiusKm, orgDescription,
   } = req.body;
 
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const uploadedDocumentUrl = req.file?.filename ? `/uploads/ngo-docs/${req.file.filename}` : '';
+  const finalDocumentUrl = String(documentUrl || '').trim() || uploadedDocumentUrl;
+
+  if (!contactName || !orgName || !normalizedEmail || !registrationNo || !finalDocumentUrl) {
+    return res.status(400).json({ success: false, message: 'Please fill all required fields.' });
+  }
+
   // Prevent duplicate applications from same email
-  const existing = await NgoApplication.findOne({ where: { email: email.toLowerCase() } });
+  const existing = await NgoApplication.findOne({ where: { email: normalizedEmail } });
   if (existing) {
     return res.status(400).json({ success: false, message: 'An application with this email already exists' });
   }
@@ -105,11 +113,11 @@ export const submitApplication = asyncHandler(async (req, res) => {
   const application = await NgoApplication.create({
     contact_name: contactName,
     org_name: orgName,
-    email,
+    email: normalizedEmail,
     phone,
     org_type: orgType || 'ngo',
     registration_no: registrationNo,
-    document_url: documentUrl,
+    document_url: finalDocumentUrl,
     org_address: orgAddress,
     coverage_radius_km: parseCoverageRadius(coverageRadiusKm),
     org_description: orgDescription,

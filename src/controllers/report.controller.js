@@ -93,19 +93,41 @@ async function createAutoCommunityPostFromReport({ report, authorId, postType })
 
   const body = buildAutoCommunityPostBody(report, postType);
   const imageUrl = normalizeString(report?.media_url);
+  const explicitImageUrls = Array.isArray(report?.media_urls)
+    ? report.media_urls.map((value) => normalizeString(value)).filter(Boolean)
+    : [];
+  const mergedImageUrls = Array.from(new Set([imageUrl, ...explicitImageUrls].filter(Boolean)));
 
   await Post.create({
     title,
     body,
-    image_url: imageUrl || null,
-    image_urls: imageUrl ? JSON.stringify([imageUrl]) : null,
+    image_url: mergedImageUrls[0] || null,
+    image_urls: mergedImageUrls.length ? JSON.stringify(mergedImageUrls) : null,
     post_type: postType,
     author_id: authorId,
   });
 }
 
-function buildReportPayload(body, user, file) {
-  const imageUrl = file ? `/uploads/reports/${file.filename}` : body.media_url || null;
+function getUploadedReportMediaUrls(req, body) {
+  const uploadedFromFiles = Array.isArray(req.files)
+    ? req.files
+        .map((file) => (file?.filename ? `/uploads/reports/${file.filename}` : ''))
+        .filter(Boolean)
+    : [];
+
+  const bodyMediaUrls = Array.isArray(body?.media_urls)
+    ? body.media_urls.map((value) => normalizeString(value)).filter(Boolean)
+    : [];
+
+  const singleBodyMediaUrl = normalizeString(body?.media_url);
+  if (singleBodyMediaUrl) bodyMediaUrls.push(singleBodyMediaUrl);
+
+  return Array.from(new Set([...uploadedFromFiles, ...bodyMediaUrls]));
+}
+
+function buildReportPayload(body, user, req) {
+  const mediaUrls = getUploadedReportMediaUrls(req, body);
+  const imageUrl = mediaUrls[0] || null;
 
   return {
     category: body.category || 'other',
@@ -127,18 +149,47 @@ function buildReportPayload(body, user, file) {
     share_with_ngo: parseBoolean(body.share_with_ngo, true),
     consent: parseBoolean(body.consent, false),
     created_by: user?.id || null,
+    media_urls: mediaUrls,
   };
 }
 
-export const createGuestReport = asyncHandler(async (req, res) => {
-  const payload = buildReportPayload(req.body, null, req.file);
-  if (isLostPetIssue(payload.issue)) {
-    payload.show_on_user_map = true;
-    payload.map_published_at = new Date();
-    payload.map_published_by = null;
+function isWithinSriLankaBounds(lat, lng) {
+  return lat >= 5.75 && lat <= 10.05 && lng >= 79.45 && lng <= 82.15;
+}
+
+function validateReportCreatePayload(payload) {
+  if (!Array.isArray(payload.media_urls) || payload.media_urls.length < 1) {
+    return 'Please upload at least one image before submitting the report.';
   }
 
-  const report = await Report.create(payload);
+  const lat = Number(payload.lat);
+  const lng = Number(payload.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return 'A valid location is required.';
+  }
+  if (!isWithinSriLankaBounds(lat, lng)) {
+    return 'Location must be inside Sri Lanka.';
+  }
+
+  return null;
+}
+
+export const createGuestReport = asyncHandler(async (req, res) => {
+  const payload = buildReportPayload(req.body, null, req);
+  const validationError = validateReportCreatePayload(payload);
+  if (validationError) {
+    return res.status(400).json({ success: false, message: validationError });
+  }
+
+  const reportPayload = { ...payload };
+  delete reportPayload.media_urls;
+  if (isLostPetIssue(payload.issue)) {
+    reportPayload.show_on_user_map = true;
+    reportPayload.map_published_at = new Date();
+    reportPayload.map_published_by = null;
+  }
+
+  const report = await Report.create(reportPayload);
 
   const padded = String(report.id).padStart(5, '0');
   await report.update({ report_number: `RPT-${padded}` });
@@ -151,23 +202,29 @@ export const createGuestReport = asyncHandler(async (req, res) => {
 });
 
 export const createReport = asyncHandler(async (req, res) => {
-  const payload = buildReportPayload(req.body, req.user, req.file);
+  const payload = buildReportPayload(req.body, req.user, req);
+  const validationError = validateReportCreatePayload(payload);
+  if (validationError) {
+    return res.status(400).json({ success: false, message: validationError });
+  }
+
+  const { media_urls: mediaUrls, ...reportPayload } = payload;
   const lostPetFlow = isLostPetIssue(payload.issue);
 
   if (lostPetFlow) {
-    payload.show_on_user_map = true;
-    payload.map_published_at = new Date();
-    payload.map_published_by = req.user?.id || null;
+    reportPayload.show_on_user_map = true;
+    reportPayload.map_published_at = new Date();
+    reportPayload.map_published_by = req.user?.id || null;
   }
 
-  const report = await Report.create(payload);
+  const report = await Report.create(reportPayload);
 
   const padded = String(report.id).padStart(5, '0');
   await report.update({ report_number: `RPT-${padded}` });
 
   if (lostPetFlow) {
     await createAutoCommunityPostFromReport({
-      report,
+      report: { ...report.toJSON(), media_urls: mediaUrls },
       authorId: req.user?.id || report.created_by,
       postType: 'lost_pet',
     });

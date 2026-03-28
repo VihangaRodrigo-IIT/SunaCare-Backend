@@ -294,6 +294,7 @@ CREATE TABLE post_comments (
   id        INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   post_id   INT UNSIGNED NOT NULL,
   author_id INT UNSIGNED NOT NULL,
+  parent_comment_id INT UNSIGNED DEFAULT NULL,
   body      TEXT         NOT NULL,
   image_url VARCHAR(500) DEFAULT NULL,
   is_flagged TINYINT(1)  NOT NULL DEFAULT 0,
@@ -302,9 +303,11 @@ CREATE TABLE post_comments (
   created_at DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_post_id (post_id),
+  INDEX idx_parent_comment_id (parent_comment_id),
   INDEX idx_comment_flagged (is_flagged),
   INDEX idx_comment_hidden (hidden),
   FOREIGN KEY (post_id)   REFERENCES posts(id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_comment_id) REFERENCES post_comments(id) ON DELETE CASCADE,
   FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

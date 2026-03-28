@@ -5,6 +5,7 @@ export const PostComment = sequelize.define('PostComment', {
   id:        { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   post_id:   { type: DataTypes.INTEGER, allowNull: false },
   author_id: { type: DataTypes.INTEGER, allowNull: false },
+  parent_comment_id: { type: DataTypes.INTEGER, allowNull: true },
   body:      { type: DataTypes.TEXT,    allowNull: true },
   image_url: { type: DataTypes.STRING(500), allowNull: true },
   is_flagged:{ type: DataTypes.BOOLEAN, defaultValue: false },

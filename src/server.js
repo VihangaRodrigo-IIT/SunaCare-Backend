@@ -35,6 +35,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const isProduction = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
 
 if (String(process.env.TRUST_PROXY || 'false').toLowerCase() === 'true') {
   app.set('trust proxy', 1);
@@ -79,11 +80,22 @@ app.use(helmet({
 }));
 app.use(hpp());
 
+const rateLimitWindowMinutes = Number.parseInt(process.env.RATE_LIMIT_WINDOW_MS || '15', 10);
+const rateLimitMaxRequests = Number.parseInt(
+  process.env.RATE_LIMIT_MAX_REQUESTS || (isProduction ? '500' : '5000'),
+  10
+);
+
 app.use(rateLimit({
-  windowMs: Number.parseInt(process.env.RATE_LIMIT_WINDOW_MS || '15', 10) * 60 * 1000,
-  max: Number.parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '500', 10),
+  windowMs: rateLimitWindowMinutes * 60 * 1000,
+  max: rateLimitMaxRequests,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.method === 'OPTIONS' || req.path === '/health',
+  message: {
+    success: false,
+    message: 'Too many requests. Please wait a moment and try again.',
+  },
 }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -166,12 +178,60 @@ async function ensureOtpUpdatedAtDefault() {
   }
 }
 
+async function ensurePostCommentParentColumn() {
+  try {
+    const qi = sequelize.getQueryInterface();
+    const table = await qi.describeTable('post_comments');
+
+    if (!table?.parent_comment_id) {
+      await sequelize.query(`
+        ALTER TABLE post_comments
+        ADD COLUMN parent_comment_id INT UNSIGNED NULL AFTER author_id
+      `);
+      logger.info('Added post_comments.parent_comment_id column');
+    }
+
+    const [indexes] = await sequelize.query('SHOW INDEX FROM post_comments');
+    const hasParentIndex = Array.isArray(indexes)
+      && indexes.some((index) => String(index?.Key_name || '').toLowerCase() === 'idx_parent_comment_id');
+
+    if (!hasParentIndex) {
+      await sequelize.query('ALTER TABLE post_comments ADD INDEX idx_parent_comment_id (parent_comment_id)');
+      logger.info('Added post_comments.idx_parent_comment_id index');
+    }
+
+    const [constraints] = await sequelize.query(`
+      SELECT CONSTRAINT_NAME
+      FROM information_schema.KEY_COLUMN_USAGE
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'post_comments'
+        AND COLUMN_NAME = 'parent_comment_id'
+        AND REFERENCED_TABLE_NAME = 'post_comments'
+    `);
+    const hasParentFk = Array.isArray(constraints) && constraints.length > 0;
+
+    if (!hasParentFk) {
+      await sequelize.query(`
+        ALTER TABLE post_comments
+        ADD CONSTRAINT fk_post_comments_parent
+        FOREIGN KEY (parent_comment_id)
+        REFERENCES post_comments(id)
+        ON DELETE CASCADE
+      `);
+      logger.info('Added post_comments parent comment foreign key');
+    }
+  } catch (err) {
+    logger.warn('Skipped post_comments.parent_comment_id guard:', err?.message || err);
+  }
+}
+
 async function start() {
   try {
     await sequelize.authenticate();
     logger.info('Database connected');
 
     await ensureOtpUpdatedAtDefault();
+    await ensurePostCommentParentColumn();
 
     if (process.env.DB_SYNC === 'true') {
       await sequelize.sync({ alter: true });
