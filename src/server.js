@@ -42,21 +42,26 @@ if (String(process.env.TRUST_PROXY || 'false').toLowerCase() === 'true') {
 }
 
 
-const allowedOrigins = [
+const allowedOrigins = new Set([
   'https://app.sunacare.org',
   'https://admin.sunacare.org',
   'https://responder.sunacare.org',
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',
-];
+]);
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  if (allowedOrigins.has(origin)) return true;
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return true;
+  return false;
+}
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      console.log("Origin:", origin); // debug
-
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
 
