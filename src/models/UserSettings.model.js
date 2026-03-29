@@ -17,7 +17,6 @@ export const UserSettings = sequelize.define('UserSettings', {
   coverage_radius_km: { type: DataTypes.INTEGER, defaultValue: 5,          allowNull: false },
   auto_assign:        { type: DataTypes.BOOLEAN, defaultValue: false,       allowNull: false },
   routing_priority:   { type: DataTypes.ENUM('distance', 'urgency', 'animal_type'), defaultValue: 'distance', allowNull: false },
-  two_factor_enabled: { type: DataTypes.BOOLEAN, defaultValue: false,       allowNull: false },
 }, {
   tableName: 'user_settings',
   underscored: true,

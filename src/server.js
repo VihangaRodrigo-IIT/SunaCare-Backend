@@ -35,6 +35,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const isProduction = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
 
 if (String(process.env.TRUST_PROXY || 'false').toLowerCase() === 'true') {
   app.set('trust proxy', 1);
@@ -79,12 +80,37 @@ app.use(helmet({
 }));
 app.use(hpp());
 
+const rateLimitWindowMinutes = Number.parseInt(process.env.RATE_LIMIT_WINDOW_MS || '15', 10);
+const rateLimitMaxRequests = Number.parseInt(
+  process.env.RATE_LIMIT_MAX_REQUESTS || (isProduction ? '500' : '5000'),
+  10
+);
+
+// Global rate limiter for general API requests.
 app.use(rateLimit({
-  windowMs: Number.parseInt(process.env.RATE_LIMIT_WINDOW_MS || '15', 10) * 60 * 1000,
-  max: Number.parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '500', 10),
+  windowMs: rateLimitWindowMinutes * 60 * 1000,
+  max: rateLimitMaxRequests,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.method === 'OPTIONS' || req.path === '/health' || req.path.startsWith('/api/auth'),
+  message: {
+    success: false,
+    message: 'Too many requests. Please wait a moment and try again.',
+  },
 }));
+
+// More lenient rate limiter specifically for auth endpoints to allow retries.
+const authLimiter = rateLimit({
+  windowMs: rateLimitWindowMinutes * 60 * 1000,
+  max: isProduction ? 100 : 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: {
+    success: false,
+    message: 'Too many failed login attempts. Please wait a moment and try again.',
+  },
+});
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -115,7 +141,7 @@ app.get('/api', (_req, res) => res.json({
   ],
 }));
 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/ngos', ngoRoutes);
 app.use('/api/reports', reportRoutes);
@@ -131,10 +157,95 @@ app.use('/api/settings', settingsRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
+async function ensureOtpUpdatedAtDefault() {
+  try {
+    const qi = sequelize.getQueryInterface();
+    const table = await qi.describeTable('otp_verifications');
+    const updatedAt = table?.updated_at;
+
+    // Some existing databases have updated_at as NOT NULL without default,
+    // which breaks inserts because OTP model does not manage updated_at.
+    if (!updatedAt) return;
+
+    const hasCurrentTimestampDefault = String(updatedAt.defaultValue || '')
+      .toUpperCase()
+      .includes('CURRENT_TIMESTAMP');
+
+    if (updatedAt.allowNull === false && !hasCurrentTimestampDefault) {
+      await sequelize.query(`
+        UPDATE otp_verifications
+        SET updated_at = created_at
+        WHERE updated_at IS NULL
+      `);
+
+      await sequelize.query(`
+        ALTER TABLE otp_verifications
+        MODIFY COLUMN updated_at DATETIME NOT NULL
+        DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
+      `);
+
+      logger.info('Repaired otp_verifications.updated_at default');
+    }
+  } catch (err) {
+    logger.warn('Skipped otp_verifications.updated_at guard:', err?.message || err);
+  }
+}
+
+async function ensurePostCommentParentColumn() {
+  try {
+    const qi = sequelize.getQueryInterface();
+    const table = await qi.describeTable('post_comments');
+
+    if (!table?.parent_comment_id) {
+      await sequelize.query(`
+        ALTER TABLE post_comments
+        ADD COLUMN parent_comment_id INT UNSIGNED NULL AFTER author_id
+      `);
+      logger.info('Added post_comments.parent_comment_id column');
+    }
+
+    const [indexes] = await sequelize.query('SHOW INDEX FROM post_comments');
+    const hasParentIndex = Array.isArray(indexes)
+      && indexes.some((index) => String(index?.Key_name || '').toLowerCase() === 'idx_parent_comment_id');
+
+    if (!hasParentIndex) {
+      await sequelize.query('ALTER TABLE post_comments ADD INDEX idx_parent_comment_id (parent_comment_id)');
+      logger.info('Added post_comments.idx_parent_comment_id index');
+    }
+
+    const [constraints] = await sequelize.query(`
+      SELECT CONSTRAINT_NAME
+      FROM information_schema.KEY_COLUMN_USAGE
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'post_comments'
+        AND COLUMN_NAME = 'parent_comment_id'
+        AND REFERENCED_TABLE_NAME = 'post_comments'
+    `);
+    const hasParentFk = Array.isArray(constraints) && constraints.length > 0;
+
+    if (!hasParentFk) {
+      await sequelize.query(`
+        ALTER TABLE post_comments
+        ADD CONSTRAINT fk_post_comments_parent
+        FOREIGN KEY (parent_comment_id)
+        REFERENCES post_comments(id)
+        ON DELETE CASCADE
+      `);
+      logger.info('Added post_comments parent comment foreign key');
+    }
+  } catch (err) {
+    logger.warn('Skipped post_comments.parent_comment_id guard:', err?.message || err);
+  }
+}
+
 async function start() {
   try {
     await sequelize.authenticate();
     logger.info('Database connected');
+
+    await ensureOtpUpdatedAtDefault();
+    await ensurePostCommentParentColumn();
 
     if (process.env.DB_SYNC === 'true') {
       await sequelize.sync({ alter: true });

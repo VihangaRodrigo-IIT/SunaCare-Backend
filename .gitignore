@@ -29,3 +29,5 @@ Thumbs.db
 .idea/
 .env
 
+database/local-setup.sql
+database/LOCAL_SETUP_GUIDE.md

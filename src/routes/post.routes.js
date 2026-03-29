@@ -79,6 +79,10 @@ const createValidation = [
 ];
 
 const commentValidation = [
+  body('parent_comment_id')
+    .optional({ nullable: true, checkFalsy: true })
+    .isInt({ min: 1 })
+    .withMessage('parent_comment_id must be a positive integer'),
   body('body').custom((value, { req }) => {
     const text = typeof value === 'string' ? value.trim() : '';
     const hasImage = Boolean(req.file) || Boolean(req.body.image_url);

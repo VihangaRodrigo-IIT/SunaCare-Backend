@@ -5,7 +5,6 @@ const ALLOWED_KEYS = [
   'notif_email_reports', 'notif_email_users', 'notif_email_campaigns',
   'notif_push_reports',  'notif_push_urgent',  'notif_push_system',
   'coverage_radius_km',  'auto_assign',        'routing_priority',
-  'two_factor_enabled',
 ];
 
 function parseCoverageRadius(value) {

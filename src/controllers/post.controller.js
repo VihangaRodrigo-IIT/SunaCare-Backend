@@ -87,6 +87,7 @@ function normalizeCommentPayload(comment, includeReports) {
 
   const payload = {
     ...obj,
+    parent_comment_id: obj?.parent_comment_id ? Number(obj.parent_comment_id) : null,
     author_name: obj?.author?.name,
     author_avatar: obj?.author?.avatar,
     likes: Number(obj?.likes ?? commentLikes.length ?? 0),
@@ -387,9 +388,30 @@ export const commentOnPost = asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: 'Comment text or image is required' });
   }
 
+  const rawParentId = req.body.parent_comment_id;
+  const parentCommentId = rawParentId === undefined || rawParentId === null || String(rawParentId).trim() === ''
+    ? null
+    : Number.parseInt(String(rawParentId), 10);
+
+  if (parentCommentId !== null) {
+    if (!Number.isInteger(parentCommentId) || parentCommentId <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid parent comment id' });
+    }
+
+    const parentComment = await PostComment.findByPk(parentCommentId);
+    if (!parentComment) {
+      return res.status(404).json({ success: false, message: 'Parent comment not found' });
+    }
+
+    if (Number(parentComment.post_id) !== Number(post.id)) {
+      return res.status(400).json({ success: false, message: 'Parent comment does not belong to this post' });
+    }
+  }
+
   const comment = await PostComment.create({
     post_id: post.id,
     author_id: req.user.id,
+    parent_comment_id: parentCommentId,
     body: text || ' ',
     image_url: imageUrl,
   });

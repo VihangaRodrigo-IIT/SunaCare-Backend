@@ -121,6 +121,7 @@ CREATE TABLE reports (
   address          VARCHAR(500)  DEFAULT NULL,
   landmark         VARCHAR(255)  DEFAULT NULL,
   media_url        VARCHAR(500)  DEFAULT NULL,
+  media_urls       TEXT          DEFAULT NULL,
   contact_name     VARCHAR(100)  DEFAULT NULL,
   contact_phone    VARCHAR(30)   DEFAULT NULL,
   contact_method   ENUM('email','phone') DEFAULT NULL,
@@ -161,6 +162,7 @@ CREATE TABLE pets (
   color        VARCHAR(100) DEFAULT NULL,
   description  TEXT         DEFAULT NULL,
   health_notes TEXT         DEFAULT NULL,
+  personality  TEXT         DEFAULT NULL,
   ideal_home   TEXT         DEFAULT NULL,
   location     VARCHAR(255) DEFAULT NULL,
   status       ENUM('available','pending','adopted') NOT NULL DEFAULT 'available',
@@ -170,6 +172,7 @@ CREATE TABLE pets (
   microchipped TINYINT(1)   NOT NULL DEFAULT 0,
   dewormed     TINYINT(1)   NOT NULL DEFAULT 0,
   image_url    MEDIUMTEXT   DEFAULT NULL,
+  image_urls   LONGTEXT     DEFAULT NULL COMMENT 'JSON array of image URLs',
   contact_name  VARCHAR(100) DEFAULT NULL,
   contact_phone VARCHAR(50)  DEFAULT NULL,
   contact_email VARCHAR(255) DEFAULT NULL,
@@ -294,6 +297,7 @@ CREATE TABLE post_comments (
   id        INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   post_id   INT UNSIGNED NOT NULL,
   author_id INT UNSIGNED NOT NULL,
+  parent_comment_id INT UNSIGNED DEFAULT NULL,
   body      TEXT         NOT NULL,
   image_url VARCHAR(500) DEFAULT NULL,
   is_flagged TINYINT(1)  NOT NULL DEFAULT 0,
@@ -302,9 +306,11 @@ CREATE TABLE post_comments (
   created_at DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_post_id (post_id),
+  INDEX idx_parent_comment_id (parent_comment_id),
   INDEX idx_comment_flagged (is_flagged),
   INDEX idx_comment_hidden (hidden),
   FOREIGN KEY (post_id)   REFERENCES posts(id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_comment_id) REFERENCES post_comments(id) ON DELETE CASCADE,
   FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

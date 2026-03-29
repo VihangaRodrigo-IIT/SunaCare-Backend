@@ -54,6 +54,8 @@ Post.hasMany(PostComment, { foreignKey: 'post_id',  as: 'comments' });
 Post.hasMany(PostLike,    { foreignKey: 'post_id',  as: 'post_likes' });
 PostComment.belongsTo(Post, { foreignKey: 'post_id', as: 'post' });
 PostComment.belongsTo(User, { foreignKey: 'author_id', as: 'author' });
+PostComment.belongsTo(PostComment, { foreignKey: 'parent_comment_id', as: 'parent_comment' });
+PostComment.hasMany(PostComment, { foreignKey: 'parent_comment_id', as: 'replies' });
 PostComment.hasMany(PostCommentReport, { foreignKey: 'comment_id', as: 'reports' });
 PostComment.hasMany(PostCommentLike, { foreignKey: 'comment_id', as: 'comment_likes' });
 PostCommentReport.belongsTo(PostComment, { foreignKey: 'comment_id', as: 'comment' });

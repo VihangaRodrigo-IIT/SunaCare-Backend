@@ -43,8 +43,8 @@ const upload = multer({
 
 const router = Router();
 
-router.post('/guest', upload.single('media'), createGuestReport);
-router.post('/', optionalProtect, upload.single('media'), createReport);
+router.post('/guest', upload.array('media', 5), createGuestReport);
+router.post('/', optionalProtect, upload.array('media', 5), createReport);
 router.get('/map/public', listPublicMapReports);
 router.get('/map/all', protect, authorize('responder'), listMapReports);
 router.get('/', protect, listReports);
