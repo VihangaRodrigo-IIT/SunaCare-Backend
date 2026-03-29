@@ -86,17 +86,31 @@ const rateLimitMaxRequests = Number.parseInt(
   10
 );
 
+// Global rate limiter for general API requests.
 app.use(rateLimit({
   windowMs: rateLimitWindowMinutes * 60 * 1000,
   max: rateLimitMaxRequests,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.method === 'OPTIONS' || req.path === '/health',
+  skip: (req) => req.method === 'OPTIONS' || req.path === '/health' || req.path.startsWith('/api/auth'),
   message: {
     success: false,
     message: 'Too many requests. Please wait a moment and try again.',
   },
 }));
+
+// More lenient rate limiter specifically for auth endpoints to allow retries.
+const authLimiter = rateLimit({
+  windowMs: rateLimitWindowMinutes * 60 * 1000,
+  max: isProduction ? 100 : 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: {
+    success: false,
+    message: 'Too many failed login attempts. Please wait a moment and try again.',
+  },
+});
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -127,7 +141,7 @@ app.get('/api', (_req, res) => res.json({
   ],
 }));
 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/ngos', ngoRoutes);
 app.use('/api/reports', reportRoutes);

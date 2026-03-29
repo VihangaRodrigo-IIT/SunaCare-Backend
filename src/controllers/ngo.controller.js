@@ -15,12 +15,17 @@ async function getNgoColumns() {
 const ORG_TYPE_TO_DB = {
   ngo: 'ngo',
   'animal welfare': 'ngo',
+  'animal welfare organization': 'ngo',
   vet: 'vet',
   'vet clinic': 'vet',
+  'wet vet clinic': 'vet',
+  'vet hospital': 'vet',
+  'wet hospital': 'vet',
   shelter: 'shelter',
   'animal shelter': 'shelter',
   rescue: 'rescue',
   'rescue organization': 'rescue',
+  'rescue center': 'rescue',
   'wildlife conservation': 'rescue',
   other: 'ngo',
 };
@@ -49,6 +54,14 @@ function parseCoverageRadius(value) {
   if (!Number.isFinite(parsed)) return null;
   if (parsed < 1) return 1;
   if (parsed > 500) return 500;
+  return parsed;
+}
+
+function parseCoordinate(value, min, max) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed)) return null;
+  if (parsed < min || parsed > max) return null;
   return parsed;
 }
 
@@ -94,56 +107,122 @@ export const submitApplication = asyncHandler(async (req, res) => {
   const {
     contactName, orgName, email, phone, orgType,
     registrationNo, documentUrl, orgAddress, coverageRadiusKm, orgDescription,
+    latitude, longitude,
   } = req.body;
 
   const normalizedEmail = String(email || '').trim().toLowerCase();
   const uploadedDocumentUrl = req.file?.filename ? `/uploads/ngo-docs/${req.file.filename}` : '';
   const finalDocumentUrl = String(documentUrl || '').trim() || uploadedDocumentUrl;
+  const parsedLatitude = parseCoordinate(latitude, 5.75, 10.05);
+  const parsedLongitude = parseCoordinate(longitude, 79.45, 82.15);
 
-  if (!contactName || !orgName || !normalizedEmail || !registrationNo || !finalDocumentUrl) {
+  if (!contactName || !orgName || !normalizedEmail || !phone || !orgAddress || !finalDocumentUrl) {
     return res.status(400).json({ success: false, message: 'Please fill all required fields.' });
   }
 
-  // Prevent duplicate applications from same email
-  const existing = await NgoApplication.findOne({ where: { email: normalizedEmail } });
-  if (existing) {
-    return res.status(400).json({ success: false, message: 'An application with this email already exists' });
+  if (parsedLatitude === null || parsedLongitude === null) {
+    return res.status(400).json({ success: false, message: 'Please select a valid location in Sri Lanka on the map.' });
   }
+
+  // Prevent duplicate active pending applications from same email.
+  const existingPending = await NgoApplication.findOne({
+    where: { email: normalizedEmail, approval_status: 'pending' },
+    order: [['created_at', 'DESC']],
+  });
+  if (existingPending) {
+    return res.status(200).json({
+      success: true,
+      message: 'An application with this email is already pending review. Admin can view it in NGO verification.',
+      application: { id: existingPending.id, org_name: existingPending.org_name, approval_status: 'pending' },
+    });
+  }
+
+  // Reuse latest rejected record so history stays tidy and status moves back to pending.
+  const existingRejected = await NgoApplication.findOne({
+    where: { email: normalizedEmail, approval_status: 'rejected' },
+    order: [['created_at', 'DESC']],
+  });
+  if (existingRejected) {
+    await existingRejected.update({
+      contact_name: contactName,
+      org_name: orgName,
+      phone,
+      org_type: normalizeOrgTypeForDb(orgType),
+      registration_no: registrationNo,
+      document_url: finalDocumentUrl,
+      org_address: orgAddress,
+      coverage_radius_km: parseCoverageRadius(coverageRadiusKm),
+      org_description: orgDescription,
+      latitude: parsedLatitude,
+      longitude: parsedLongitude,
+      approval_status: 'pending',
+      review_note: null,
+      reviewed_by: null,
+      reviewed_at: null,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Previous rejected application was resubmitted for review.',
+      application: { id: existingRejected.id, org_name: existingRejected.org_name, approval_status: existingRejected.approval_status },
+    });
+  }
+
+  const existingApproved = await NgoApplication.findOne({
+    where: { email: normalizedEmail, approval_status: 'approved' },
+    order: [['created_at', 'DESC']],
+  });
 
   const application = await NgoApplication.create({
     contact_name: contactName,
     org_name: orgName,
     email: normalizedEmail,
     phone,
-    org_type: orgType || 'ngo',
+    org_type: normalizeOrgTypeForDb(orgType),
     registration_no: registrationNo,
     document_url: finalDocumentUrl,
     org_address: orgAddress,
     coverage_radius_km: parseCoverageRadius(coverageRadiusKm),
     org_description: orgDescription,
+    latitude: parsedLatitude,
+    longitude: parsedLongitude,
+    // Set explicitly so older DBs with weak defaults still land in pending review.
+    approval_status: 'pending',
   });
 
   res.status(201).json({
     success: true,
-    message: 'Application submitted. After admin approval, credentials will be shared with your organization manually.',
+    message: existingApproved
+      ? 'A new verification request was submitted for this email and is now pending admin review.'
+      : 'Application submitted. After admin approval, credentials will be shared with your organization manually.',
     application: { id: application.id, org_name: application.org_name, approval_status: application.approval_status },
   });
 });
 
 // GET /api/ngos/applications  (admin)
 export const listApplications = asyncHandler(async (req, res) => {
-  const applications = await NgoApplication.findAll({
-    include: [
-      { model: NgoVerification, as: 'verification', attributes: ['username', 'password_plain', 'email_sent', 'created_at'] },
-      { model: User, as: 'reviewer', attributes: ['id', 'name', 'email'] },
-    ],
-    order: [['created_at', 'DESC']],
-  });
+  let applications = [];
+  try {
+    applications = await NgoApplication.findAll({
+      include: [
+        { model: NgoVerification, as: 'verification', attributes: ['username', 'password_plain', 'email_sent', 'created_at'] },
+        { model: User, as: 'reviewer', attributes: ['id', 'name', 'email'] },
+      ],
+      order: [['created_at', 'DESC']],
+    });
+  } catch {
+    // Fallback for older or drifted schemas where joins fail: return base applications.
+    applications = await NgoApplication.findAll({
+      order: [['created_at', 'DESC']],
+    });
+  }
 
   // Shape response to match frontend NgoApplication interface
   const data = applications.map(app => ({
     ...app.toJSON(),
     name: app.contact_name,   // frontend uses 'name' for contact person
+    org_type: normalizeOrgTypeForDb(app.org_type),
+    approval_status: app.approval_status || 'pending',
     credentials: app.verification || null,
   }));
 
