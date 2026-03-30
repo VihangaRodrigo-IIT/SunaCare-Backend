@@ -1,0 +1,2 @@
+ALTER TABLE pets
+  ADD COLUMN IF NOT EXISTS image_urls LONGTEXT NULL COMMENT 'JSON array of image URLs' AFTER image_url;

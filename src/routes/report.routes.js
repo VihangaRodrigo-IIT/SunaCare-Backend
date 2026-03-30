@@ -32,7 +32,10 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: {
+    fileSize: 15 * 1024 * 1024,
+    files: 5,
+  },
   fileFilter: (_req, file, callback) => {
     const allowed = /jpeg|jpg|png|gif|webp/;
     const ext = allowed.test(path.extname(file.originalname).toLowerCase());
@@ -43,8 +46,8 @@ const upload = multer({
 
 const router = Router();
 
-router.post('/guest', upload.single('media'), createGuestReport);
-router.post('/', optionalProtect, upload.single('media'), createReport);
+router.post('/guest', upload.array('media', 5), createGuestReport);
+router.post('/', optionalProtect, upload.array('media', 5), createReport);
 router.get('/map/public', listPublicMapReports);
 router.get('/map/all', protect, authorize('responder'), listMapReports);
 router.get('/', protect, listReports);

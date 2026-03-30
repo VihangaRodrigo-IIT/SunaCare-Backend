@@ -27,6 +27,25 @@ export const Report = sequelize.define('Report', {
 
   // Media
   media_url: { type: DataTypes.STRING(500), allowNull: true },
+  media_urls: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    get() {
+      try {
+        const raw = this.getDataValue('media_urls');
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    },
+    set(value) {
+      const urls = Array.isArray(value)
+        ? value.map((item) => String(item || '').trim()).filter(Boolean)
+        : [];
+      this.setDataValue('media_urls', urls.length ? JSON.stringify(urls) : null);
+    },
+  },
 
   // Reporter contact — all nullable (guest or logged-in user)
   contact_name:    { type: DataTypes.STRING(100), allowNull: true },

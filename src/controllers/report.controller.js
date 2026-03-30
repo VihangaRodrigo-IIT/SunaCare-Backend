@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { Post, Report, User } from '../models/index.js';
+import { NgoApplication, Post, Report, User } from '../models/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sequelize } from '../config/database.js';
 
@@ -7,12 +7,20 @@ const REPORTER_ATTRS = ['id', 'name', 'role', 'avatar'];
 const ASSIGNEE_ATTRS = ['id', 'name', 'role', 'avatar'];
 
 let cachedReportCols = null;
+let cachedNgoCols = null;
 
 async function getReportColumns() {
   if (cachedReportCols) return cachedReportCols;
   const [rows] = await sequelize.query('SHOW COLUMNS FROM reports');
   cachedReportCols = new Set(rows.map((row) => row.Field));
   return cachedReportCols;
+}
+
+async function getNgoColumns() {
+  if (cachedNgoCols) return cachedNgoCols;
+  const [rows] = await sequelize.query('SHOW COLUMNS FROM ngo_applications');
+  cachedNgoCols = new Set(rows.map((row) => row.Field));
+  return cachedNgoCols;
 }
 
 function parseTags(tags) {
@@ -58,6 +66,13 @@ function getReportTrackingNumber(report) {
   return id > 0 ? `RPT-${String(id).padStart(5, '0')}` : 'RPT-UNKNOWN';
 }
 
+function extractTrackingNumberFromText(value) {
+  const text = normalizeString(value);
+  if (!text) return null;
+  const match = text.match(/RPT-\d+/i);
+  return match ? match[0].toUpperCase() : null;
+}
+
 function buildAutoCommunityPostBody(report, postType) {
   const tracking = getReportTrackingNumber(report);
   const issue = normalizeString(report?.issue) || 'Animal case update';
@@ -93,19 +108,60 @@ async function createAutoCommunityPostFromReport({ report, authorId, postType })
 
   const body = buildAutoCommunityPostBody(report, postType);
   const imageUrl = normalizeString(report?.media_url);
+  const explicitImageUrls = Array.isArray(report?.media_urls)
+    ? report.media_urls.map((value) => normalizeString(value)).filter(Boolean)
+    : [];
+  const mergedImageUrls = Array.from(new Set([imageUrl, ...explicitImageUrls].filter(Boolean)));
 
   await Post.create({
     title,
     body,
-    image_url: imageUrl || null,
-    image_urls: imageUrl ? JSON.stringify([imageUrl]) : null,
+    image_url: mergedImageUrls[0] || null,
+    image_urls: mergedImageUrls.length ? JSON.stringify(mergedImageUrls) : null,
     post_type: postType,
     author_id: authorId,
   });
 }
 
-function buildReportPayload(body, user, file) {
-  const imageUrl = file ? `/uploads/reports/${file.filename}` : body.media_url || null;
+function getUploadedReportMediaUrls(req, body) {
+  const uploadedFromFiles = Array.isArray(req.files)
+    ? req.files
+        .map((file) => (file?.filename ? `/uploads/reports/${file.filename}` : ''))
+        .filter(Boolean)
+    : [];
+
+  const bodyMediaUrls = Array.isArray(body?.media_urls)
+    ? body.media_urls.map((value) => normalizeString(value)).filter(Boolean)
+    : [];
+
+  const singleBodyMediaUrl = normalizeString(body?.media_url);
+  if (singleBodyMediaUrl) bodyMediaUrls.push(singleBodyMediaUrl);
+
+  return Array.from(new Set([...uploadedFromFiles, ...bodyMediaUrls]));
+}
+
+function normalizeReportMediaUrls(reportLike) {
+  const fromMulti = Array.isArray(reportLike?.media_urls)
+    ? reportLike.media_urls.map((value) => normalizeString(value)).filter(Boolean)
+    : [];
+  const fromSingle = normalizeString(reportLike?.media_url);
+  const merged = Array.from(new Set([...fromMulti, fromSingle].filter(Boolean)));
+  return merged;
+}
+
+function serializeReport(reportLike) {
+  const plain = typeof reportLike?.toJSON === 'function' ? reportLike.toJSON() : reportLike;
+  const mediaUrls = normalizeReportMediaUrls(plain);
+  return {
+    ...plain,
+    media_urls: mediaUrls,
+    media_url: plain?.media_url || mediaUrls[0] || null,
+  };
+}
+
+function buildReportPayload(body, user, req) {
+  const mediaUrls = getUploadedReportMediaUrls(req, body);
+  const imageUrl = mediaUrls[0] || null;
 
   return {
     category: body.category || 'other',
@@ -127,18 +183,46 @@ function buildReportPayload(body, user, file) {
     share_with_ngo: parseBoolean(body.share_with_ngo, true),
     consent: parseBoolean(body.consent, false),
     created_by: user?.id || null,
+    media_urls: mediaUrls,
   };
 }
 
-export const createGuestReport = asyncHandler(async (req, res) => {
-  const payload = buildReportPayload(req.body, null, req.file);
-  if (isLostPetIssue(payload.issue)) {
-    payload.show_on_user_map = true;
-    payload.map_published_at = new Date();
-    payload.map_published_by = null;
+function isWithinSriLankaBounds(lat, lng) {
+  return lat >= 5.75 && lat <= 10.05 && lng >= 79.45 && lng <= 82.15;
+}
+
+function validateReportCreatePayload(payload) {
+  if (!Array.isArray(payload.media_urls) || payload.media_urls.length < 1) {
+    return 'Please upload at least one image before submitting the report.';
   }
 
-  const report = await Report.create(payload);
+  const lat = Number(payload.lat);
+  const lng = Number(payload.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return 'A valid location is required.';
+  }
+  if (!isWithinSriLankaBounds(lat, lng)) {
+    return 'Location must be inside Sri Lanka.';
+  }
+
+  return null;
+}
+
+export const createGuestReport = asyncHandler(async (req, res) => {
+  const payload = buildReportPayload(req.body, null, req);
+  const validationError = validateReportCreatePayload(payload);
+  if (validationError) {
+    return res.status(400).json({ success: false, message: validationError });
+  }
+
+  const reportPayload = { ...payload };
+  if (isLostPetIssue(payload.issue)) {
+    reportPayload.show_on_user_map = true;
+    reportPayload.map_published_at = new Date();
+    reportPayload.map_published_by = null;
+  }
+
+  const report = await Report.create(reportPayload);
 
   const padded = String(report.id).padStart(5, '0');
   await report.update({ report_number: `RPT-${padded}` });
@@ -151,23 +235,29 @@ export const createGuestReport = asyncHandler(async (req, res) => {
 });
 
 export const createReport = asyncHandler(async (req, res) => {
-  const payload = buildReportPayload(req.body, req.user, req.file);
+  const payload = buildReportPayload(req.body, req.user, req);
+  const validationError = validateReportCreatePayload(payload);
+  if (validationError) {
+    return res.status(400).json({ success: false, message: validationError });
+  }
+
+  const reportPayload = { ...payload };
   const lostPetFlow = isLostPetIssue(payload.issue);
 
   if (lostPetFlow) {
-    payload.show_on_user_map = true;
-    payload.map_published_at = new Date();
-    payload.map_published_by = req.user?.id || null;
+    reportPayload.show_on_user_map = true;
+    reportPayload.map_published_at = new Date();
+    reportPayload.map_published_by = req.user?.id || null;
   }
 
-  const report = await Report.create(payload);
+  const report = await Report.create(reportPayload);
 
   const padded = String(report.id).padStart(5, '0');
   await report.update({ report_number: `RPT-${padded}` });
 
   if (lostPetFlow) {
     await createAutoCommunityPostFromReport({
-      report,
+      report: serializeReport(report),
       authorId: req.user?.id || report.created_by,
       postType: 'lost_pet',
     });
@@ -199,7 +289,7 @@ export const listReports = asyncHandler(async (req, res) => {
     order: [['created_at', 'DESC']],
   });
 
-  res.json({ success: true, reports });
+  res.json({ success: true, reports: reports.map(serializeReport) });
 });
 
 export const listMapReports = asyncHandler(async (req, res) => {
@@ -252,6 +342,7 @@ export const listMapReports = asyncHandler(async (req, res) => {
 
 export const listPublicMapReports = asyncHandler(async (_req, res) => {
   const cols = await getReportColumns();
+  const ngoCols = await getNgoColumns();
   if (!cols.has('show_on_user_map')) {
     return res.json({ success: true, data: { reports: [] } });
   }
@@ -265,9 +356,64 @@ export const listPublicMapReports = asyncHandler(async (_req, res) => {
     },
     order: [['map_published_at', 'DESC']],
     limit: 300,
+    include: ngoCols.has('show_on_user_map')
+      ? [
+          {
+            model: User,
+            as: 'assignee',
+            required: false,
+            attributes: ['id', 'ngo_application_id'],
+            include: [
+              {
+                model: NgoApplication,
+                as: 'ngo_application',
+                required: false,
+                attributes: ['id', 'show_on_user_map'],
+              },
+            ],
+          },
+        ]
+      : [],
   });
 
-  const mapped = reports.map((report) => ({
+  const visibleReports = reports.filter((report) => {
+    if (!ngoCols.has('show_on_user_map')) return true;
+    const assignee = report.assignee;
+    const ngo = assignee?.ngo_application;
+    if (!ngo) return true;
+    return ngo.show_on_user_map !== false;
+  });
+
+  const lostPetTrackings = Array.from(new Set(
+    visibleReports
+      .filter((report) => isLostPetIssue(report.issue))
+      .map((report) => getReportTrackingNumber(report).toUpperCase())
+      .filter(Boolean)
+  ));
+
+  const lostPetPostByTracking = new Map();
+  if (lostPetTrackings.length > 0) {
+    const lostPosts = await Post.findAll({
+      where: { post_type: 'lost_pet' },
+      attributes: ['id', 'title', 'body'],
+      order: [['created_at', 'DESC']],
+      limit: 1000,
+    });
+
+    for (const post of lostPosts) {
+      const tracking =
+        extractTrackingNumberFromText(post.title) ||
+        extractTrackingNumberFromText(post.body);
+      if (!tracking) continue;
+      if (!lostPetTrackings.includes(tracking)) continue;
+      if (!lostPetPostByTracking.has(tracking)) {
+        lostPetPostByTracking.set(tracking, post.id);
+      }
+    }
+  }
+
+  const mapped = visibleReports.map((report) => ({
+    tracking_number: getReportTrackingNumber(report),
     id: report.id,
     case_number: report.report_number || `RPT-${String(report.id).padStart(5, '0')}`,
     title: report.issue || 'Rescue Report',
@@ -280,6 +426,9 @@ export const listPublicMapReports = asyncHandler(async (_req, res) => {
     lng: Number(report.lng),
     address: report.address,
     landmark: report.landmark,
+    community_post_id: isLostPetIssue(report.issue)
+      ? (lostPetPostByTracking.get(getReportTrackingNumber(report).toUpperCase()) || null)
+      : null,
     media_url: cols.has('hide_media_from_public') && report.hide_media_from_public ? null : report.media_url,
     hide_media_from_public: cols.has('hide_media_from_public') ? Boolean(report.hide_media_from_public) : false,
     published_at: report.map_published_at,
@@ -300,7 +449,7 @@ export const getReport = asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, message: 'Report not found' });
   }
 
-  res.json({ success: true, report });
+  res.json({ success: true, report: serializeReport(report) });
 });
 
 export const updateReportMapVisibility = asyncHandler(async (req, res) => {
